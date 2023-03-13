@@ -1,7 +1,9 @@
 from pprint import pprint
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from pglast import ast, parse_sql
+
+from column import Column
 
 # sql = "select a, b, c from tbl;"
 # sql = "insert into to_table (to_col1, to_col2) \
@@ -15,20 +17,20 @@ from pglast import ast, parse_sql
 
 # sql = "INSERT INTO new_table ( col1, col2, col3 ) WITH tmp_table AS ( SELECT col1 as colX, col2, col3, 5 FROM old_table ) SELECT col1, col2, col3, 4 FROM tmp_table"
 
-sql = "SELECT s1.age, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students GROUP BY age ) as s1;"
+sql = "SELECT s1.age, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students GROUP BY age ) as s1, s2;"
 
 
-def parse_restarget(tgt, result):
+def parse_restarget(tgt, result: List[Column]):
     if "@" not in tgt.keys():
         return
 
     if tgt["@"] == "ColumnRef" and "fields" in tgt.keys():
-        fields = []
+        col: List[str] = []
         for field in tgt["fields"]:
             if "sval" in field.keys():
-                fields.append(field["sval"])
-        if fields:
-            result.append(fields)
+                col.append(field["sval"])
+        if col:
+            result.append(Column.create_from_list(col))
         return
 
     for val in tgt.values():
@@ -36,12 +38,41 @@ def parse_restarget(tgt, result):
             parse_restarget(val, result)
 
 
-def parse_select_statement(statement: Dict[str, Any]):
-    columns: List[List[str]] = []
+class Res:
+    def __init__(self, layer, columns, tables, next) -> None:
+        self.layer = layer
+        self.columns = columns
+        self.tables = tables
+        self.next = next
+
+    def show(self):
+        print(f"{self.layer=}")
+        for col in self.columns:
+            col.show()
+        print(self.tables)
+        for res in self.next:
+            print("\n")
+            res.show()
+
+
+def parse_select_statement(statement: Dict[str, Any], layer) -> Res:
+    columns: List[Column] = []
     for target in statement["targetList"]:
         parse_restarget(target, columns)
-    print(columns)
-    return
+
+    tables, next = [], []
+    for table in statement["fromClause"]:
+        if "subquery" in table.keys():
+            next.append(parse_select_statement(table["subquery"], layer + 1))
+        if "alias" in table.keys():
+            tables.append(table["alias"]["aliasname"])
+        elif "relname" in table.keys():
+            tables.append(table["relname"])
+
+    if len(tables) == 1:
+        Column.add_table(tables[0], columns)
+
+    return Res(layer, columns, tables, next)
 
 
 if __name__ == "__main__":
@@ -49,4 +80,5 @@ if __name__ == "__main__":
     x = stmt(skip_none=True)
     pprint(x)
     if isinstance(stmt, ast.SelectStmt):
-        parse_select_statement(x)
+        res = parse_select_statement(x, 0)
+        res.show()
