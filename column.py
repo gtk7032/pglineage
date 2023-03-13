@@ -12,13 +12,19 @@ class Column:
         print(f"{self.name=}, {self.table=}")
 
     @staticmethod
+    def show_(col: List[Column]):
+        for c in col:
+            c.show()
+
+    @staticmethod
     def create_from_list(ls: list[str]):
         name = ls[-1]
         table = ls[-2] if len(ls) == 2 else ""
         return Column(name, table)
 
     @staticmethod
-    def add_table(table: str, columns: List[Column]):
+    def add_table(table: str, columns: List[List[Column]]):
         for col in columns:
-            if not col.table:
-                col.table = table
+            for c in col:
+                if not c.table:
+                    c.table = table

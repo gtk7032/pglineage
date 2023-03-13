@@ -17,9 +17,10 @@ from column import Column
 
 # sql = "INSERT INTO new_table ( col1, col2, col3 ) WITH tmp_table AS ( SELECT col1 as colX, col2, col3, 5 FROM old_table ) SELECT col1, col2, col3, 4 FROM tmp_table"
 
-sql = "SELECT s1.age, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students GROUP BY age ) as s1, s2;"
+sql = "SELECT s1.age * s2.age, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students GROUP BY age ) as s1, s2;"
 
 
+# select の結果1項目について
 def parse_restarget(tgt, result: List[Column]):
     if "@" not in tgt.keys():
         return
@@ -47,8 +48,9 @@ class Res:
 
     def show(self):
         print(f"{self.layer=}")
-        for col in self.columns:
-            col.show()
+        for i, col in enumerate(self.columns):
+            print("field" + str(i))
+            Column.show_(col)
         print(self.tables)
         for res in self.next:
             print("\n")
@@ -56,9 +58,11 @@ class Res:
 
 
 def parse_select_statement(statement: Dict[str, Any], layer) -> Res:
-    columns: List[Column] = []
+    columns: List[List[Column]] = []
     for target in statement["targetList"]:
-        parse_restarget(target, columns)
+        tmp: List[Column] = []
+        parse_restarget(target, tmp)
+        columns.append(tmp)
 
     tables, next = [], []
     for table in statement["fromClause"]:
