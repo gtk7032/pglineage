@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from restarget import ResTarget
+from table import Table
 
 
 class ParsedStatement:
@@ -10,7 +11,7 @@ class ParsedStatement:
         self,
         layer: int,
         columns: List[ResTarget],
-        tables: List[str],
+        tables: List[Table],
         next: List[ParsedStatement],
     ) -> None:
         self.layer = layer
@@ -20,10 +21,10 @@ class ParsedStatement:
 
     def show(self):
         print("----------")
-        print(f"{self.layer=}")
-        for col in self.columns:
-            col.show()
-        print(f"{self.tables=}")
+        print("layer：" + str(self.layer))
+        for i, col in enumerate(self.columns):
+            print("column" + str(i) + ": " + str(col))
+        print("tables:" + Table.list2str(self.tables))
         print("----------")
         for res in self.next:
             print("\n")

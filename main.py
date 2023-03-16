@@ -7,6 +7,7 @@ from pglast import ast, parse_sql
 
 from parsed import ParsedStatement
 from restarget import ResTarget
+from table import Table
 
 # sql = "select a, b, c from tbl;"
 # sql = "insert into to_table (to_col1, to_col2) \
@@ -21,7 +22,7 @@ from restarget import ResTarget
 
 # sql = "INSERT INTO new_table ( col1, col2, col3 ) WITH tmp_table AS ( SELECT col1 as colX, col2, col3, 5 FROM old_table ) SELECT col1, col2, col3, 4 FROM tmp_table"
 
-sql = "SELECT s1.age * s2.age, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students GROUP BY age ) as s1, s2;"
+sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
 # sql = "UPDATE EMPLOYEES SET SALARY = 8500 WHERE LAST_NAME = 'Keats';"
 
 
@@ -34,12 +35,19 @@ def parse_select_statement(statement: Dict[str, Any], layer: int) -> ParsedState
 
     tables, next = [], []
     for table in statement["fromClause"]:
-        if "subquery" in table.keys():
-            next.append(parse_select_statement(table["subquery"], layer + 1))
-        if "alias" in table.keys():
-            tables.append(table["alias"]["aliasname"])
-        elif "relname" in table.keys():
-            tables.append(table["relname"])
+        if "@" in table.keys() and table["@"] == "RangeSubselect":
+            if "alias" in table.keys():
+                alias = table["alias"]["aliasname"]
+            if "subquery" in table.keys():
+                next.append(parse_select_statement(table["subquery"], layer + 1))
+            tables.append(Table("", alias))
+
+        elif "@" in table.keys() and table["@"] == "RangeVar":
+            if "relname" in table.keys():
+                name = table["relname"]
+            if "alias" in table.keys():
+                alias = table["alias"]["aliasname"]
+            tables.append(Table(name, alias))
 
     if len(tables) == 1:
         for col in columns:
