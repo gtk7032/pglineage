@@ -11,18 +11,15 @@ class Field:
     def set_table(self, table: str) -> None:
         self.table = table
 
-    def to_str(self) -> str:
+    def __str__(self) -> str:
         return self.table + "." + self.name
 
     @staticmethod
-    def list_to_str(fields: List[Field]) -> str:
+    def list2str(fields: List[Field]) -> str:
         res = ""
         for field in fields:
-            res += " " + field.to_str()
+            res += " " + str(field)
         return res
-
-    def show(self) -> None:
-        print(f"{self.table=}, {self.name=}")
 
     @staticmethod
     def create_from_list(ls: List[str]):

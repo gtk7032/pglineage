@@ -5,8 +5,8 @@ from typing import Any, Dict, List
 
 from pglast import ast, parse_sql
 
-from column import ResTarget
-from field import Field
+from parsed import ParsedStatement
+from restarget import ResTarget
 
 # sql = "select a, b, c from tbl;"
 # sql = "insert into to_table (to_col1, to_col2) \
@@ -21,55 +21,15 @@ from field import Field
 
 # sql = "INSERT INTO new_table ( col1, col2, col3 ) WITH tmp_table AS ( SELECT col1 as colX, col2, col3, 5 FROM old_table ) SELECT col1, col2, col3, 4 FROM tmp_table"
 
-# sql = "SELECT s1.age * s2.age, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students GROUP BY age ) as s1, s2;"
-sql = "UPDATE EMPLOYEES SET SALARY = 8500 WHERE LAST_NAME = 'Keats';"
+sql = "SELECT s1.age * s2.age, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students GROUP BY age ) as s1, s2;"
+# sql = "UPDATE EMPLOYEES SET SALARY = 8500 WHERE LAST_NAME = 'Keats';"
 
 
-# select の結果1項目について
-def parse_restarget(tgt, column: ResTarget):
-    if "@" not in tgt.keys():
-        return
-
-    if tgt["@"] == "ColumnRef" and "fields" in tgt.keys():
-        field = []
-        for elm in tgt["fields"]:
-            if "sval" in elm.keys():
-                field.append(elm["sval"])
-        if field:
-            column.add_field(Field.create_from_list(field))
-        return
-
-    for elm in tgt.values():
-        if isinstance(elm, dict):
-            parse_restarget(elm, column)
-
-
-class Res:
-    def __init__(
-        self, layer: int, columns: List[ResTarget], tables: List[str], next: List[Res]
-    ) -> None:
-        self.layer = layer
-        self.columns = columns
-        self.tables = tables
-        self.next = next
-
-    def show(self):
-        print("----------")
-        print(f"{self.layer=}")
-        for col in self.columns:
-            col.show()
-        print(f"{self.tables=}")
-        print("----------")
-        for res in self.next:
-            print("\n")
-            res.show()
-
-
-def parse_select_statement(statement: Dict[str, Any], layer: int) -> Res:
+def parse_select_statement(statement: Dict[str, Any], layer: int) -> ParsedStatement:
     columns: List[ResTarget] = []
     for target in statement["targetList"]:
         column = ResTarget()
-        parse_restarget(target, column)
+        ResTarget.parse_restarget(target, column)
         columns.append(column)
 
     tables, next = [], []
@@ -85,7 +45,7 @@ def parse_select_statement(statement: Dict[str, Any], layer: int) -> Res:
         for col in columns:
             col.attach_table(tables[0])
 
-    return Res(layer, columns, tables, next)
+    return ParsedStatement(layer, columns, tables, next)
 
 
 if __name__ == "__main__":
