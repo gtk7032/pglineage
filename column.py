@@ -2,29 +2,20 @@ from __future__ import annotations
 
 from typing import List
 
+from field import Field
 
-class Column:
-    def __init__(self, name: str, table: str) -> None:
-        self.name = name
-        self.table = table
+
+class ResTarget:
+    def __init__(self) -> None:
+        self.name = ""
+        self.fields: List[Field] = []
+
+    def add_field(self, field: Field) -> None:
+        self.fields.append(field)
+
+    def attach_table(self, table: str) -> None:
+        for field in self.fields:
+            field.set_table(table)
 
     def show(self):
-        print(f"{self.name=}, {self.table=}")
-
-    @staticmethod
-    def show_(col: List[Column]):
-        for c in col:
-            c.show()
-
-    @staticmethod
-    def create_from_list(ls: list[str]):
-        name = ls[-1]
-        table = ls[-2] if len(ls) == 2 else ""
-        return Column(name, table)
-
-    @staticmethod
-    def add_table(table: str, columns: List[List[Column]]):
-        for col in columns:
-            for c in col:
-                if not c.table:
-                    c.table = table
+        print(f"{self.name=}" + ":" + Field.list_to_str(self.fields))
