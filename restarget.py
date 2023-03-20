@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from field import Field
 from table import Table
@@ -39,5 +39,10 @@ class ResTarget:
             return
 
         for elm in tgt.values():
-            if isinstance(elm, dict):
+            if isinstance(elm, tuple):
+                for e in elm:
+                    if isinstance(e, dict):
+                        cls.parse_restarget(e, column)
+
+            elif isinstance(elm, dict):
                 cls.parse_restarget(elm, column)
