@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from pprint import pprint
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from pglast import ast, parse_sql
 
+from field import Field
 from parsed import ParsedStatement
 from restarget import ResTarget
 from table import Table
@@ -26,48 +27,55 @@ from table import Table
 
 sql = (
     "with get_top5_amount_id as ("
-    "select customer_id as id,"
+    "select customer_id as id, "
     "sum(amount) "
     "from payment "
     ") "
     "select email "
-    "from customer, (select * from tbl ) as tbl2 "
+    "from customer, "
+    "(select * from tbl ) as tbl2 "
     "join get_top5_amount_id "
     "on customer.customer_id = get_top5_amount_id.id;"
 )
 # sql = "UPDATE EMPLOYEES SET SALARY = 8500 WHERE LAST_NAME = 'Keats';"
 
 
-def parse_select_statement(statement: Dict[str, Any], layer: int) -> ParsedStatement:
+def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedStatement:
     columns: List[ResTarget] = []
-    tables, next = [], []
+    tables = []
+    refcolumns: Dict[str, List[Field]] = {}
+    reftables: Dict[str, Union[str, ParsedStatement]] = {}
 
-    for target in statement["targetList"]:
+    for i, target in enumerate(statement["targetList"]):
         column = ResTarget()
         ResTarget.parse_restarget(target, column)
         columns.append(column)
+        refcolumns[str(column)] = column.fields
 
     if "withClause" in statement.keys():
         for cte in statement["withClause"]["ctes"]:
-            # tables.append(Table("", cte["ctename"]))
-            next.append(parse_select_statement(cte["ctequery"], layer + 1))
+            t = Table("", cte["ctename"])
+            # tables.append(t)
+            rt = parse_select_statement(layer + 1, cte["ctequery"])
+            reftables[str(t)] = rt
 
     def parse_from_clause(fc):
         if "@" not in fc.keys():
             return
 
         if fc["@"] == "RangeSubselect":
-            if "alias" in fc.keys():
-                alias = fc["alias"]["aliasname"]
-            if "subquery" in fc.keys():
-                next.append(parse_select_statement(fc["subquery"], layer + 1))
-            tables.append(Table("", alias))
+            t = Table("", fc["alias"]["aliasname"])
+            tables.append(t)
+            rt = parse_select_statement(layer + 1, fc["subquery"])
+            reftables[str(t)] = rt
 
         elif fc["@"] == "RangeVar":
-            if "relname" in fc.keys():
-                name = fc["relname"]
-            alias = fc["alias"]["aliasname"] if "alias" in fc.keys() else ""
-            tables.append(Table(name, alias))
+            table = Table(
+                fc["relname"],
+                fc["alias"]["aliasname"] if "alias" in fc.keys() else "",
+            )
+            tables.append(table)
+            reftables[str(table)] = table.entity
 
         for v in fc.values():
             if isinstance(v, Dict):
@@ -81,13 +89,14 @@ def parse_select_statement(statement: Dict[str, Any], layer: int) -> ParsedState
         for col in columns:
             col.attach_table(tables[0])
 
-    return ParsedStatement(layer, columns, tables, next)
+    return ParsedStatement(layer, columns, tables, refcolumns, reftables)
 
 
 if __name__ == "__main__":
     stmt = parse_sql(sql)[0].stmt
     x = stmt(skip_none=True)
     pprint(x)
+    print("\n")
     if isinstance(stmt, ast.SelectStmt):
-        res = parse_select_statement(x, 0)
-        res.show()
+        res = parse_select_statement(0, x)
+        print(res)

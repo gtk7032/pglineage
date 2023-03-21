@@ -1,31 +1,51 @@
 from __future__ import annotations
 
-from typing import List
-
-from restarget import ResTarget
-from table import Table
+from typing import Dict, List, Union
 
 
 class ParsedStatement:
-    def __init__(
-        self,
-        layer: int,
-        columns: List[ResTarget],
-        tables: List[Table],
-        next: List[ParsedStatement],
-    ) -> None:
-        self.layer = layer
-        self.columns = columns
-        self.tables = tables
-        self.next = next
+    def __init__(self, layer, columns, tables, refcolumns, reftables) -> None:
+        from field import Field
+        from restarget import ResTarget
+        from table import Table
 
-    def show(self):
-        print("----------")
-        print("layer：" + str(self.layer))
-        for i, col in enumerate(self.columns):
-            print("column" + str(i) + ": " + str(col))
-        print("tables:" + Table.list2str(self.tables))
-        print("----------")
-        for res in self.next:
-            print("\n")
-            res.show()
+        self.layer: int = layer
+        self.columns: List[ResTarget] = columns
+        self.tables: List[Table] = tables
+        self.refcolumns: Dict[str, List[Field]] = refcolumns
+        self.reftables: Dict[str, Union[str, ParsedStatement]] = reftables
+
+    def __str__(self) -> str:
+        return (
+            (
+                f"layer: {self.layer}\n"
+                + "tables: \n\t"
+                + "\n\t".join([str(t) for i, t in enumerate(self.tables)])
+                + "\n"
+                + "ref-columns: \n\t"
+                + "\n\t".join(
+                    [
+                        k + ": " + ", ".join([str(f) for f in v])
+                        for k, v in self.refcolumns.items()
+                        if not k == v
+                    ]
+                )
+                + "\n"
+                + "ref-tables: \n\t"
+                + "\n\t".join(
+                    [
+                        k + ": " + (v if isinstance(v, str) else "")
+                        for k, v in self.reftables.items()
+                        if not k == v
+                    ]
+                )
+            )
+            + "\n\n"
+            + "\n".join(
+                [
+                    k + "→ \n" + str(v)
+                    for k, v in self.reftables.items()
+                    if not k == str(v)
+                ]
+            )
+        )

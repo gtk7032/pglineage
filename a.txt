@@ -2,7 +2,7 @@
  'all': False,
  'fromClause': ({'@': 'RangeVar',
                  'inh': True,
-                 'location': 98,
+                 'location': 99,
                  'relname': 'customer',
                  'relpersistence': 'p'},
                 {'@': 'JoinExpr',
@@ -17,7 +17,7 @@
                                        'all': False,
                                        'fromClause': ({'@': 'RangeVar',
                                                        'inh': True,
-                                                       'location': 123,
+                                                       'location': 124,
                                                        'relname': 'tbl',
                                                        'relpersistence': 'p'},),
                                        'groupDistinct': False,
@@ -28,10 +28,10 @@
                                               'name': 'SETOP_NONE',
                                               'value': 0},
                                        'targetList': ({'@': 'ResTarget',
-                                                       'location': 116,
+                                                       'location': 117,
                                                        'val': {'@': 'ColumnRef',
                                                                'fields': ({'@': 'A_Star'},),
-                                                               'location': 116}},)}},
+                                                               'location': 117}},)}},
                  'quals': {'@': 'A_Expr',
                            'kind': {'#': 'A_Expr_Kind',
                                     'name': 'AEXPR_OP',
@@ -41,17 +41,17 @@
                                                  'sval': 'customer'},
                                                 {'@': 'String',
                                                  'sval': 'customer_id'}),
-                                     'location': 164},
-                           'location': 185,
+                                     'location': 165},
+                           'location': 186,
                            'name': ({'@': 'String', 'sval': '='},),
                            'rexpr': {'@': 'ColumnRef',
                                      'fields': ({'@': 'String',
                                                  'sval': 'get_top5_amount_id'},
                                                 {'@': 'String', 'sval': 'id'}),
-                                     'location': 187}},
+                                     'location': 188}},
                  'rarg': {'@': 'RangeVar',
                           'inh': True,
-                          'location': 142,
+                          'location': 143,
                           'relname': 'get_top5_amount_id',
                           'relpersistence': 'p'},
                  'rtindex': 0}),
@@ -61,10 +61,10 @@
                  'value': 0},
  'op': {'#': 'SetOperation', 'name': 'SETOP_NONE', 'value': 0},
  'targetList': ({'@': 'ResTarget',
-                 'location': 87,
+                 'location': 88,
                  'val': {'@': 'ColumnRef',
                          'fields': ({'@': 'String', 'sval': 'email'},),
-                         'location': 87}},),
+                         'location': 88}},),
  'withClause': {'@': 'WithClause',
                 'ctes': ({'@': 'CommonTableExpr',
                           'ctematerialized': {'#': 'CTEMaterialize',
@@ -75,7 +75,7 @@
                                        'all': False,
                                        'fromClause': ({'@': 'RangeVar',
                                                        'inh': True,
-                                                       'location': 70,
+                                                       'location': 71,
                                                        'relname': 'payment',
                                                        'relpersistence': 'p'},),
                                        'groupDistinct': False,
@@ -93,7 +93,7 @@
                                                                            'sval': 'customer_id'},),
                                                                'location': 35}},
                                                       {'@': 'ResTarget',
-                                                       'location': 53,
+                                                       'location': 54,
                                                        'val': {'@': 'FuncCall',
                                                                'agg_distinct': False,
                                                                'agg_star': False,
@@ -101,36 +101,38 @@
                                                                'args': ({'@': 'ColumnRef',
                                                                          'fields': ({'@': 'String',
                                                                                      'sval': 'amount'},),
-                                                                         'location': 57},),
+                                                                         'location': 58},),
                                                                'func_variadic': False,
                                                                'funcformat': {'#': 'CoercionForm',
                                                                               'name': 'COERCE_EXPLICIT_CALL',
                                                                               'value': 0},
                                                                'funcname': ({'@': 'String',
                                                                              'sval': 'sum'},),
-                                                               'location': 53}})},
+                                                               'location': 54}})},
                           'cterecursive': False,
                           'cterefcount': 0,
                           'location': 5},),
                 'location': 0,
                 'recursive': False}}
-----------
-layer：0
-column0:  → (,).email
-tables:(customer,), (,tbl2), (get_top5_amount_id,)
-----------
 
 
-----------
-layer：1
-column0: id → (payment,).customer_id
-column1:  → (payment,).amount
-tables:(payment,)
-----------
+layer: 0
+tables: 
+	customer
+	tbl2
+	get_top5_amount_id
+ref-columns: 
+	email: email
+ref-tables: 
+	tbl2: 
+
+tbl2→ 
+layer: 1
+tables: 
+	tbl
+ref-columns: 
+	: 
+ref-tables: 
+	
 
 
-----------
-layer：1
-column0:  → 
-tables:(tbl,)
-----------

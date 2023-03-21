@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 from field import Field
 from table import Table
@@ -8,7 +8,6 @@ from table import Table
 
 class ResTarget:
     def __init__(self) -> None:
-        self.name = ""
         self.fields: List[Field] = []
 
     def add_field(self, field: Field) -> None:
@@ -19,15 +18,12 @@ class ResTarget:
             field.set_table(table)
 
     def __str__(self) -> str:
-        return self.name + " → " + Field.list2str(self.fields)
+        return ", ".join([str(f) for f in self.fields])
 
     @classmethod
     def parse_restarget(cls, tgt: Dict[str, Any], column: ResTarget):
         if "@" not in tgt.keys():
             return
-
-        if tgt["@"] == "ResTarget" and "name" in tgt.keys():
-            column.name = tgt["name"]
 
         elif tgt["@"] == "ColumnRef" and "fields" in tgt.keys():
             field = []
