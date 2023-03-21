@@ -75,7 +75,8 @@ def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedState
                 fc["alias"]["aliasname"] if "alias" in fc.keys() else "",
             )
             tables.append(table)
-            reftables[str(table)] = table.entity
+            if table.alias and table.alias not in reftables.keys() and table.entity:
+                reftables[table.alias] = table.entity
 
         for v in fc.values():
             if isinstance(v, Dict):

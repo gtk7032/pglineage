@@ -36,16 +36,9 @@ class ParsedStatement:
                     [
                         k + ": " + (v if isinstance(v, str) else "")
                         for k, v in self.reftables.items()
-                        if not k == v
                     ]
                 )
             )
             + "\n\n"
-            + "\n".join(
-                [
-                    k + "→ \n" + str(v)
-                    for k, v in self.reftables.items()
-                    if not k == str(v)
-                ]
-            )
+            + "\n".join([k + "→ \n" + str(v) for k, v in self.reftables.items()])
         )

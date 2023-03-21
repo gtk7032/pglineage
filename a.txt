@@ -124,7 +124,19 @@ tables:
 ref-columns: 
 	email: email
 ref-tables: 
+	get_top5_amount_id: 
 	tbl2: 
+
+get_top5_amount_id→ 
+layer: 1
+tables: 
+	payment
+ref-columns: 
+	customer_id: payment.customer_id
+	amount: payment.amount
+ref-tables: 
+	
+
 
 tbl2→ 
 layer: 1
