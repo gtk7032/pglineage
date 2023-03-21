@@ -43,14 +43,14 @@ sql = (
 def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedStatement:
     columns: List[ResTarget] = []
     tables = []
-    refcolumns: Dict[str, List[Field]] = {}
+    refcolumns: List[List[Field]] = []
     reftables: Dict[str, Union[str, ParsedStatement]] = {}
 
     for i, target in enumerate(statement["targetList"]):
         column = ResTarget()
         ResTarget.parse_restarget(target, column)
         columns.append(column)
-        refcolumns[str(column)] = column.fields
+        refcolumns.append(column.fields)
 
     if "withClause" in statement.keys():
         for cte in statement["withClause"]["ctes"]:

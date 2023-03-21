@@ -25,9 +25,8 @@ class ParsedStatement:
                 + "ref-columns: \n\t"
                 + "\n\t".join(
                     [
-                        k + ": " + ", ".join([str(f) for f in v])
-                        for k, v in self.refcolumns.items()
-                        if not k == v
+                        "column " + str(i) + ": " + ", ".join([str(f) for f in v])
+                        for i, v in enumerate(self.refcolumns)
                     ]
                 )
                 + "\n"
