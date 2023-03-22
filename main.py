@@ -96,8 +96,8 @@ def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedState
 if __name__ == "__main__":
     stmt = parse_sql(sql)[0].stmt
     x = stmt(skip_none=True)
-    pprint(x)
+    # pprint(x)
     print("\n")
     if isinstance(stmt, ast.SelectStmt):
         res = parse_select_statement(0, x)
-        print(res)
+        pprint(res.format())
