@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, Dict, List
 
 from table import Table
 
 
-class Field:
+class Column:
     def __init__(self, table: Table, name: str):
         self.table = table
         self.name = name
-
-    def set_table(self, table: Table) -> None:
-        self.table = table
 
     def __str__(self) -> str:
         if str(self.table):
@@ -19,12 +16,17 @@ class Field:
         else:
             return self.name
 
-    @staticmethod
-    def list2str(fields: List[Field]) -> str:
-        return " [ " + ", ".join([str(f) for f in fields]) + " ] "
+    def format(self)->Dict[str,str]:
+        return {
+            "name":self.name,
+            "table":self.table
+        }
+
+    def set_table(self, table: Table) -> None:
+        self.table = table
 
     @staticmethod
     def create_from_list(ls: List[str]):
         name = ls[-1]
         table = ls[-2] if len(ls) == 2 else ""
-        return Field(Table(table, ""), name)
+        return Column(table, name)
