@@ -6,6 +6,7 @@ from typing import Any, Dict
 class Table:
     def __init__(self, alias: str, ref) -> None:
         from parsed import ParsedStatement
+
         self.alias = alias
         self.ref: str | ParsedStatement = ref
 
@@ -15,6 +16,5 @@ class Table:
     def format(self) -> Dict[str, Any]:
         return {
             "alias": self.alias,
-            "ref": self.ref if isinstance(self.ref, str) else self.ref.format()
+            "ref": self.ref if isinstance(self.ref, str) else self.ref.format(),
         }
-

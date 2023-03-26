@@ -39,7 +39,8 @@ sql = (
 )
 # sql = "UPDATE EMPLOYEES SET SALARY = 8500 WHERE LAST_NAME = 'Keats';"
 
-def parse_from_clause(fc: Dict[str, Any], tables:List[Table], layer: int) -> None:
+
+def parse_from_clause(fc: Dict[str, Any], tables: List[Table], layer: int) -> None:
     if "@" not in fc.keys():
         return
 
@@ -47,24 +48,23 @@ def parse_from_clause(fc: Dict[str, Any], tables:List[Table], layer: int) -> Non
         tables.append(
             Table(
                 fc["alias"]["aliasname"],
-                parse_select_statement(layer + 1, fc["subquery"])
-                )
+                parse_select_statement(layer + 1, fc["subquery"]),
             )
+        )
 
     elif fc["@"] == "RangeVar":
         tbl = Table(
-                fc["alias"]["aliasname"] if "alias" in fc.keys() else "",
-                fc["relname"]
-            )
-        if not [ t for t in tables if str(t) == str(tbl)]:
+            fc["alias"]["aliasname"] if "alias" in fc.keys() else "", fc["relname"]
+        )
+        if not [t for t in tables if str(t) == str(tbl)]:
             tables.append(tbl)
-        
+
     for v in fc.values():
         if isinstance(v, Dict):
             parse_from_clause(v, tables, layer)
 
+
 def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedStatement:
-  
     columns = ResTarget.parse_restarget_list(statement["targetList"])
     tables: List[Table] = []
 
@@ -72,12 +72,11 @@ def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedState
         for cte in statement["withClause"]["ctes"]:
             tables.append(
                 Table(
-                    cte["ctename"],
-                    parse_select_statement(layer + 1, cte["ctequery"])
+                    cte["ctename"], parse_select_statement(layer + 1, cte["ctequery"])
                 )
             )
 
-    if "fromClause" in statement.keys(): 
+    if "fromClause" in statement.keys():
         for fc in statement["fromClause"]:
             parse_from_clause(fc, tables, layer)
 

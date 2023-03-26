@@ -44,7 +44,7 @@ class ResTarget:
                         cls.extract_refcols(vv, refcols)
                 else:
                     cls.extract_refcols(v, refcols)
-    
+
             psdlst.append(ResTarget(name, refcols))
 
         return psdlst
@@ -69,7 +69,3 @@ class ResTarget:
                     cls.extract_refcols(vv, refcols)
             else:
                 cls.extract_refcols(v, refcols)
-
-
-
-

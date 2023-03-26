@@ -21,5 +21,5 @@ class ParsedStatement:
         return {
             "layer": self.layer,
             "columns": [c.format() for c in self.columns],
-            "tables": [t.format() for t in self.tables]
+            "tables": [t.format() for t in self.tables],
         }
