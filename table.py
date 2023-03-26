@@ -4,17 +4,17 @@ from typing import Any, Dict
 
 
 class Table:
-    def __init__(self, name: str, ref) -> None:
+    def __init__(self, alias: str, ref) -> None:
         from parsed import ParsedStatement
-        self.name = name
+        self.alias = alias
         self.ref: str | ParsedStatement = ref
 
     def __str__(self) -> str:
-        return self.ref if isinstance(self.ref, str) and self.ref else self.name
+        return self.ref if isinstance(self.ref, str) and self.ref else self.alias
 
     def format(self) -> Dict[str, Any]:
         return {
-            "name": self.name,
+            "alias": self.alias,
             "ref": self.ref if isinstance(self.ref, str) else self.ref.format()
         }
 

@@ -44,22 +44,28 @@ def parse_from_clause(fc: Dict[str, Any], tables:List[Table], layer: int) -> Non
         return
 
     if fc["@"] == "RangeSubselect":
-        tables.append(Table(fc["alias"]["aliasname"], parse_select_statement(layer + 1, fc["subquery"])))
+        tables.append(
+            Table(
+                fc["alias"]["aliasname"],
+                parse_select_statement(layer + 1, fc["subquery"])
+                )
+            )
 
     elif fc["@"] == "RangeVar":
-        tables.append(Table(
-            fc["alias"]["aliasname"] if "alias" in fc.keys() else fc["relname"],
-            fc["relname"]
-        ))
-
+        tbl = Table(
+                fc["alias"]["aliasname"] if "alias" in fc.keys() else "",
+                fc["relname"]
+            )
+        if not [ t for t in tables if str(t) == str(tbl)]:
+            tables.append(tbl)
+        
     for v in fc.values():
         if isinstance(v, Dict):
             parse_from_clause(v, tables, layer)
-    
-    return
 
 def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedStatement:
   
+    columns = ResTarget.parse_restarget_list(statement["targetList"])
     tables: List[Table] = []
 
     if "withClause" in statement.keys():
@@ -71,10 +77,9 @@ def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedState
                 )
             )
 
-    columns = ResTarget.parse_restarget_list(statement["targetList"])
-    
-    for fc in statement["fromClause"]:
-        parse_from_clause(fc, tables, layer)
+    if "fromClause" in statement.keys(): 
+        for fc in statement["fromClause"]:
+            parse_from_clause(fc, tables, layer)
 
     if len(tables) == 1:
         for col in columns:
@@ -86,7 +91,7 @@ def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedState
 if __name__ == "__main__":
     stmt = parse_sql(sql)[0].stmt
     x = stmt(skip_none=True)
-    pprint(x)
+    # pprint(x)
     print("\n")
     if isinstance(stmt, ast.SelectStmt):
         res = parse_select_statement(0, x)

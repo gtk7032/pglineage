@@ -7,8 +7,8 @@ from table import Table
 
 
 class ResTarget:
-    def __init__(self, name: str = "", refcols: List[Column] = []) -> None:
-        self.name = name
+    def __init__(self, alias: str = "", refcols: List[Column] = []) -> None:
+        self.alias = alias
         self.refcols = refcols
 
     def __str__(self) -> str:
@@ -16,7 +16,7 @@ class ResTarget:
 
     def format(self) -> Dict[str, Any]:
         return {
-            "name": self.name,
+            "alias": self.alias,
             "refcols": ", ".join([str(rc) for rc in self.refcols]),
         }
 
