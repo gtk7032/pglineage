@@ -10,8 +10,10 @@ from restarget import ResTarget
 from table import Table
 
 # sql = "select a, b, c from tbl;"
-# sql = "insert into to_table (to_col1, to_col2) \
-#   select 5 * from_col1, from_col2 from from_table;"
+sql = (
+    "insert into to_table as totbl (to_col1, to_col2) "
+    "select 5 * from_col1, from_col2 from from_table;"
+)
 # sql = "insert into to_table (to_col1, to_col2)"
 # sql = "select 5 * from_table1.from_col1, from_table2.from_col4 from from_table inner join from_table2 on from_table.from_col3 = from_table2.from_col4;"
 
@@ -24,19 +26,19 @@ from table import Table
 
 # sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
 
-sql = (
-    "with get_top5_amount_id as ("
-    "select customer_id as id, "
-    "sum(amount) sum_amount, "
-    "xxx "
-    "from payment "
-    ") "
-    "select email, get_top5_amount_id.xxx "
-    "from customer, get_top5_amount_id, "
-    "(select * from tbl ) as tbl2 "
-    "join get_top5_amount_id "
-    "on customer.customer_id = get_top5_amount_id.id;"
-)
+# sql = (
+#     "with get_top5_amount_id as ("
+#     "select customer_id as id, "
+#     "sum(amount) sum_amount, "
+#     "xxx "
+#     "from payment "
+#     ") "
+#     "select email, get_top5_amount_id.xxx "
+#     "from customer, get_top5_amount_id, "
+#     "(select * from tbl ) as tbl2 "
+#     "join get_top5_amount_id "
+#     "on customer.customer_id = get_top5_amount_id.id;"
+# )
 # sql = "UPDATE EMPLOYEES SET SALARY = 8500 WHERE LAST_NAME = 'Keats';"
 
 
@@ -87,11 +89,28 @@ def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedState
     return ParsedStatement(layer, columns, tables)
 
 
+def parse_insert_statement(layer: int, stmt: Dict[str, Any]):
+    res = ResTarget.parse_restarget_list(stmt["cols"])
+    rel = stmt["relation"]
+    tbl = Table(
+        rel["alias"]["aliasname"] if "alias" in rel.keys() else "", rel["relname"]
+    )
+    print(tbl)
+
+    return res
+
+
 if __name__ == "__main__":
     stmt = parse_sql(sql)[0].stmt
     x = stmt(skip_none=True)
     # pprint(x)
-    print("\n")
-    if isinstance(stmt, ast.SelectStmt):
-        res = parse_select_statement(0, x)
-        pprint(res.format())
+    # print("\n")
+
+    if isinstance(stmt, ast.InsertStmt):
+        res = parse_insert_statement(0, x)
+        for r in res:
+            pprint(r.format())
+
+    # if isinstance(stmt, ast.InsertStmt):
+    #     res = parse_select_statement(0, x)
+    #     pprint(res.format())

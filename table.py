@@ -11,7 +11,12 @@ class Table:
         self.ref: str | ParsedStatement = ref
 
     def __str__(self) -> str:
-        return self.ref if isinstance(self.ref, str) and self.ref else self.alias
+        if self.alias:
+            return self.alias
+        elif isinstance(self.ref, str) and self.ref:
+            return self.ref
+        else:
+            return str(self.format())
 
     def format(self) -> Dict[str, Any]:
         return {

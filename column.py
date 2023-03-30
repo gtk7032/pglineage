@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from table import Table
 
@@ -16,11 +16,8 @@ class Column:
         else:
             return self.name
 
-    def format(self)->Dict[str,str]:
-        return {
-            "name":self.name,
-            "table":self.table
-        }
+    def format(self) -> Dict[str, str | Table]:
+        return {"name": self.name, "table": self.table}
 
     def set_table(self, table: Table) -> None:
         self.table = table
@@ -29,4 +26,4 @@ class Column:
     def create_from_list(ls: List[str]):
         name = ls[-1]
         table = ls[-2] if len(ls) == 2 else ""
-        return Column(table, name)
+        return Column(Table("", table), name)

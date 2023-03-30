@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 from column import Column
 from table import Table
@@ -39,7 +39,7 @@ class ResTarget:
             refcols: List[Column] = []
 
             for v in tgt.values():
-                if isinstance(v, Tuple):
+                if isinstance(v, tuple):
                     for vv in v:
                         cls.extract_refcols(vv, refcols)
                 else:
@@ -64,7 +64,7 @@ class ResTarget:
             return
 
         for v in tgt.values():
-            if isinstance(v, Tuple):
+            if isinstance(v, tuple):
                 for vv in v:
                     cls.extract_refcols(vv, refcols)
             else:
