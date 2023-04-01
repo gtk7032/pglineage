@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+import table
 from restarget import ResTarget
-from table import Table
 
 
 class ParsedStatement:
@@ -11,7 +11,7 @@ class ParsedStatement:
         self,
         layer: int,
         columns: List[ResTarget],
-        tables: List[Table],
+        tables: List["table.Table"],
     ) -> None:
         self.layer = layer
         self.columns = columns

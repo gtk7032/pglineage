@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+import parsed
+
 
 class Table:
-    def __init__(self, alias: str, ref) -> None:
-        from parsed import ParsedStatement
-
+    def __init__(self, alias: str, ref: str | "parsed.ParsedStatement") -> None:
         self.alias = alias
-        self.ref: str | ParsedStatement = ref
+        self.ref = ref
 
     def __str__(self) -> str:
         if self.alias:
