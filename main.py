@@ -5,7 +5,8 @@ from typing import Any, Dict, List
 
 from pglast import ast, parse_sql
 
-from parsed import ParsedStatement
+from parsed import Insert as PsdInsert
+from parsed import Select as PsdSelect
 from restarget import ResTarget
 from table import Table
 
@@ -66,7 +67,7 @@ def parse_from_clause(fc: Dict[str, Any], tables: List[Table], layer: int) -> No
             parse_from_clause(v, tables, layer)
 
 
-def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedStatement:
+def parse_select_statement(layer: int, statement: Dict[str, Any]) -> PsdSelect:
     columns = ResTarget.parse_restarget_list(statement["targetList"])
     tables: List[Table] = []
 
@@ -86,18 +87,18 @@ def parse_select_statement(layer: int, statement: Dict[str, Any]) -> ParsedState
         for col in columns:
             col.attach_table(tables[0])
 
-    return ParsedStatement(layer, columns, tables)
+    return PsdSelect(layer, columns, tables)
 
 
-def parse_insert_statement(layer: int, stmt: Dict[str, Any]):
+def parse_insert_statement(layer: int, stmt: Dict[str, Any]) -> PsdInsert:
     res = ResTarget.parse_restarget_list(stmt["cols"])
     rel = stmt["relation"]
     tbl = Table(
         rel["alias"]["aliasname"] if "alias" in rel.keys() else "", rel["relname"]
     )
-    print(tbl)
-
-    return res
+    select = parse_select_statement(1, stmt["selectStmt"])
+    # pprint(select.format())
+    return PsdInsert(0, res, tbl, select)
 
 
 if __name__ == "__main__":
@@ -108,8 +109,7 @@ if __name__ == "__main__":
 
     if isinstance(stmt, ast.InsertStmt):
         res = parse_insert_statement(0, x)
-        for r in res:
-            pprint(r.format())
+        pprint(res.format())
 
     # if isinstance(stmt, ast.InsertStmt):
     #     res = parse_select_statement(0, x)

@@ -6,7 +6,7 @@ import parsed
 
 
 class Table:
-    def __init__(self, alias: str, ref: str | "parsed.ParsedStatement") -> None:
+    def __init__(self, alias: str, ref: str | "parsed.Select") -> None:
         self.alias = alias
         self.ref = ref
 
