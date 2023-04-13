@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-import parsed
+import node
 
 
 class Table:
-    def __init__(self, alias: str, ref: str | "parsed.Select") -> None:
+    def __init__(self, alias: str, ref: str | "node.Select") -> None:
         self.alias = alias
         self.ref = ref
 

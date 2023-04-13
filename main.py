@@ -1,14 +1,8 @@
 from __future__ import annotations
 
 from pprint import pprint
-from typing import Any, Dict, List
 
-from pglast import ast, parse_sql
-
-from parsed import Insert as PsdInsert
-from parsed import Select as PsdSelect
-from restarget import ResTarget
-from table import Table
+from analyzer import Analyzer
 
 # sql = "select a, b, c from tbl;"
 sql = (
@@ -43,74 +37,9 @@ sql = (
 # sql = "UPDATE EMPLOYEES SET SALARY = 8500 WHERE LAST_NAME = 'Keats';"
 
 
-def parse_from_clause(fc: Dict[str, Any], tables: List[Table], layer: int) -> None:
-    if "@" not in fc.keys():
-        return
-
-    if fc["@"] == "RangeSubselect":
-        tables.append(
-            Table(
-                fc["alias"]["aliasname"],
-                parse_select_statement(layer + 1, fc["subquery"]),
-            )
-        )
-
-    elif fc["@"] == "RangeVar":
-        tbl = Table(
-            fc["alias"]["aliasname"] if "alias" in fc.keys() else "", fc["relname"]
-        )
-        if not [t for t in tables if str(t) == str(tbl)]:
-            tables.append(tbl)
-
-    for v in fc.values():
-        if isinstance(v, Dict):
-            parse_from_clause(v, tables, layer)
-
-
-def parse_select_statement(layer: int, statement: Dict[str, Any]) -> PsdSelect:
-    columns = ResTarget.parse_restarget_list(statement["targetList"])
-    tables: List[Table] = []
-
-    if "withClause" in statement.keys():
-        for cte in statement["withClause"]["ctes"]:
-            tables.append(
-                Table(
-                    cte["ctename"], parse_select_statement(layer + 1, cte["ctequery"])
-                )
-            )
-
-    if "fromClause" in statement.keys():
-        for fc in statement["fromClause"]:
-            parse_from_clause(fc, tables, layer)
-
-    if len(tables) == 1:
-        for col in columns:
-            col.attach_table(tables[0])
-
-    return PsdSelect(layer, columns, tables)
-
-
-def parse_insert_statement(layer: int, stmt: Dict[str, Any]) -> PsdInsert:
-    res = ResTarget.parse_restarget_list(stmt["cols"])
-    rel = stmt["relation"]
-    tbl = Table(
-        rel["alias"]["aliasname"] if "alias" in rel.keys() else "", rel["relname"]
-    )
-    select = parse_select_statement(1, stmt["selectStmt"])
-    # pprint(select.format())
-    return PsdInsert(0, res, tbl, select)
-
-
 if __name__ == "__main__":
-    stmt = parse_sql(sql)[0].stmt
-    x = stmt(skip_none=True)
-    # pprint(x)
-    # print("\n")
-
-    if isinstance(stmt, ast.InsertStmt):
-        res = parse_insert_statement(0, x)
-        pprint(res.format())
-
-    # if isinstance(stmt, ast.InsertStmt):
-    #     res = parse_select_statement(0, x)
-    #     pprint(res.format())
+    analyzer = Analyzer()
+    analyzer.load(sql)
+    nodes = analyzer.analyze()
+    for nd in nodes:
+        pprint(nd.format())

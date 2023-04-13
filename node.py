@@ -17,6 +17,10 @@ class Select:
         self.columns = columns
         self.tables = tables
 
+    @staticmethod
+    def empty() -> Select:
+        return Select(-1, [], [])
+
     def format(self) -> Dict[str, Any]:
         return {
             "layer": self.layer,
