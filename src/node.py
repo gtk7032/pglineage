@@ -40,7 +40,7 @@ class Insert:
         self.layer = 0
         self.tgtcols = tgtcols
         self.tgttbl = tgttbl
-        self.select = subquery
+        self.subquery = subquery
 
     def format(self) -> dict[str, Any]:
         return {
@@ -48,7 +48,7 @@ class Insert:
             "layer": self.layer,
             "tgtcols": [col.format() for col in self.tgtcols],
             "tgttbl": self.tgttbl.format(),
-            "subquery": self.select.format(),
+            "subquery": self.subquery.format(),
         }
 
 
