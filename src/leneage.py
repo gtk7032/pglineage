@@ -8,5 +8,5 @@ class Lineage:
         pass
 
     @staticmethod
-    def create(nodes: list[node.Select | node.Insert]) -> Lineage:
+    def create(nodes: list[node.X]) -> Lineage:
         pass
