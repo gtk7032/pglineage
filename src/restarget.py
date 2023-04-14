@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from column import Column
 from table import Table
 
 
 class ResTarget:
-    def __init__(self, alias: str = "", refcols: List[Column] = []) -> None:
+    def __init__(self, alias: str = "", refcols: list[Column] = []) -> None:
         self.alias = alias
         self.refcols = refcols
 
     def __str__(self) -> str:
         return str(self.format())
 
-    def format(self) -> Dict[str, Any]:
+    def format(self) -> dict[str, Any]:
         return {
             "alias": self.alias,
             "refcols": ", ".join([str(rc) for rc in self.refcols]),
@@ -28,15 +28,15 @@ class ResTarget:
             rc.set_table(table)
 
     @classmethod
-    def parse_restarget_list(cls, tgtlst: List[Dict[str, Any]]) -> List[ResTarget]:
-        psdlst: List[ResTarget] = []
+    def parse_restarget_list(cls, tgtlst: list[dict[str, Any]]) -> list[ResTarget]:
+        psdlst: list[ResTarget] = []
 
         for tgt in tgtlst:
             if "@" not in tgt.keys() or tgt["@"] != "ResTarget":
                 Exception()
 
             name = tgt["name"] if "name" in tgt.keys() else ""
-            refcols: List[Column] = []
+            refcols: list[Column] = []
 
             for v in tgt.values():
                 if isinstance(v, tuple):
@@ -50,8 +50,8 @@ class ResTarget:
         return psdlst
 
     @classmethod
-    def extract_refcols(cls, tgt: Dict[str, Any], refcols: List[Column]) -> None:
-        if not isinstance(tgt, Dict):
+    def extract_refcols(cls, tgt: dict[str, Any], refcols: list[Column]) -> None:
+        if not isinstance(tgt, dict):
             return
 
         if "@" in tgt.keys() and tgt["@"] == "ColumnRef" and "fields" in tgt.keys():

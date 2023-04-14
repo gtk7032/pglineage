@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 import table
 from restarget import ResTarget
@@ -10,8 +10,8 @@ class Select:
     def __init__(
         self,
         layer: int,
-        columns: List[ResTarget],
-        tables: List["table.Table"],
+        columns: list[ResTarget],
+        tables: list["table.Table"],
     ) -> None:
         self.layer = layer
         self.columns = columns
@@ -21,7 +21,7 @@ class Select:
     def empty() -> Select:
         return Select(-1, [], [])
 
-    def format(self) -> Dict[str, Any]:
+    def format(self) -> dict[str, Any]:
         return {
             "layer": self.layer,
             "columns": [c.format() for c in self.columns],
@@ -33,7 +33,7 @@ class Insert:
     def __init__(
         self,
         layer: int,
-        tgtcols: List[ResTarget],
+        tgtcols: list[ResTarget],
         tgttbl: "table.Table",
         select: Select,
     ) -> None:
@@ -42,7 +42,7 @@ class Insert:
         self.tgttbl = tgttbl
         self.select = select
 
-    def format(self) -> Dict[str, Any]:
+    def format(self) -> dict[str, Any]:
         return {
             "layer": self.layer,
             "tgtcols": [col.format() for col in self.tgtcols],

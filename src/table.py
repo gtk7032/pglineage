@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import node
 
@@ -18,7 +18,7 @@ class Table:
         else:
             return str(self.format())
 
-    def format(self) -> Dict[str, Any]:
+    def format(self) -> dict[str, Any]:
         return {
             "alias": self.alias,
             "ref": self.ref if isinstance(self.ref, str) else self.ref.format(),

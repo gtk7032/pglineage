@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any
 
 from pglast import ast, parse_sql
 
@@ -9,13 +9,13 @@ from table import Table
 
 class Analyzer:
     def __init__(self) -> None:
-        self.__rawstmts: List[Any] = []
+        self.__rawstmts: list[Any] = []
 
     def load(self, sqls: str) -> None:
         self.__rawstmts = [sql.stmt for sql in parse_sql(sqls)]
 
-    def analyze(self) -> List[node.Select | node.Insert]:
-        nodes: List[node.Select | node.Insert] = []
+    def analyze(self) -> list[node.Select | node.Insert]:
+        nodes: list[node.Select | node.Insert] = []
         for rawstmt in self.__rawstmts:
             if isinstance(rawstmt, ast.SelectStmt):
                 nodes.append(self.__analyze_select(0, rawstmt(skip_none=True)))
@@ -24,7 +24,7 @@ class Analyzer:
         return nodes
 
     def __analyze_fromclause(
-        self, fc: Dict[str, Any], tables: List[Table], layer: int
+        self, fc: dict[str, Any], tables: list[Table], layer: int
     ) -> None:
         if "@" not in fc.keys():
             return
@@ -45,12 +45,12 @@ class Analyzer:
                 tables.append(tbl)
 
         for v in fc.values():
-            if isinstance(v, Dict):
+            if isinstance(v, dict):
                 self.__analyze_fromclause(v, tables, layer)
 
-    def __analyze_select(self, layer: int, statement: Dict[str, Any]) -> node.Select:
+    def __analyze_select(self, layer: int, statement: dict[str, Any]) -> node.Select:
         columns = ResTarget.parse_restarget_list(statement["targetList"])
-        tables: List[Table] = []
+        tables: list[Table] = []
 
         if "withClause" in statement.keys():
             for cte in statement["withClause"]["ctes"]:
@@ -71,7 +71,7 @@ class Analyzer:
 
         return node.Select(layer, columns, tables)
 
-    def __analyze_insert(self, layer: int, stmt: Dict[str, Any]) -> node.Insert:
+    def __analyze_insert(self, layer: int, stmt: dict[str, Any]) -> node.Insert:
         res = ResTarget.parse_restarget_list(stmt["cols"])
         rel = stmt["relation"]
         tbl = Table(
