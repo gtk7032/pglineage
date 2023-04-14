@@ -9,18 +9,18 @@ from table import Table
 
 class Analyzer:
     def __init__(self) -> None:
-        self.__stmts: List[Any] = []
+        self.__rawstmts: List[Any] = []
 
     def load(self, sqls: str) -> None:
-        self.__stmts = [sql.stmt(skip_none=True) for sql in parse_sql(sqls)]
+        self.__rawstmts = [sql.stmt for sql in parse_sql(sqls)]
 
     def analyze(self) -> List[node.Select | node.Insert]:
         nodes: List[node.Select | node.Insert] = []
-        for stmt in self.__stmts:
-            if isinstance(stmt, ast.SelectStmt):
-                nodes.append(self.__analyze_select(0, stmt))
-            if isinstance(stmt, ast.InsertStmt):
-                nodes.append(self.__analyze_insert(0, stmt))
+        for rawstmt in self.__rawstmts:
+            if isinstance(rawstmt, ast.SelectStmt):
+                nodes.append(self.__analyze_select(0, rawstmt(skip_none=True)))
+            elif isinstance(rawstmt, ast.InsertStmt):
+                nodes.append(self.__analyze_insert(0, rawstmt(skip_none=True)))
         return nodes
 
     def __analyze_fromclause(
