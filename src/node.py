@@ -1,12 +1,26 @@
 from __future__ import annotations
 
-from typing import Any, TypeAlias
+import abc
+from typing import Any
 
 import table
+from column import Column
 from restarget import ResTarget
 
 
-class Select:
+class Node(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def format(self) -> dict[str, Any]:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def flatten(self) -> Any:
+        raise NotImplementedError()
+
+
+class Select(Node):
+    STATEMENT = "Select"
+
     def __init__(
         self,
         columns: list[ResTarget],
@@ -23,14 +37,21 @@ class Select:
 
     def format(self) -> dict[str, Any]:
         return {
-            "statement": "Select",
+            "statement": Select.STATEMENT,
             "layer": self.layer,
             "columns": [c.format() for c in self.columns],
             "tables": [t.format() for t in self.tables],
         }
 
+    def flatten(self) -> dict[str, Any]:
+        targets: list[list[Column]]
+        refs: list[Column]
+        return {"targets": targets, "reds": refs}
 
-class Insert:
+
+class Insert(Node):
+    STATEMENT = "Insert"
+
     def __init__(
         self,
         tgtcols: list[ResTarget],
@@ -44,12 +65,15 @@ class Insert:
 
     def format(self) -> dict[str, Any]:
         return {
-            "statement": "Insert",
+            "statement": Insert.STATEMENT,
             "layer": self.layer,
             "tgtcols": [col.format() for col in self.tgtcols],
             "tgttbl": self.tgttbl.format(),
             "subquery": self.subquery.format(),
         }
 
-
-X: TypeAlias = Select | Insert
+    def flatten(self) -> dict[str, Any]:
+        dst_table: str
+        dst_cols: dict[str, list[Column]]
+        refs: list[Column]
+        return {"dst_table": dst_table, "dst_cols": dst_cols, "reds": refs}

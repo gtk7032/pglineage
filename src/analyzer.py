@@ -15,8 +15,8 @@ class Analyzer:
     def load(self, sqls: str) -> None:
         self.__rawstmts = [sql.stmt for sql in parse_sql(sqls)]
 
-    def analyze(self) -> list[node.X]:
-        nodes: list[node.X] = []
+    def analyze(self) -> list[node.Node]:
+        nodes: list[node.Node] = []
         for rawstmt in self.__rawstmts:
             if isinstance(rawstmt, ast.SelectStmt):
                 nodes.append(self.__analyze_select(rawstmt(skip_none=True)))
@@ -49,10 +49,10 @@ class Analyzer:
             if isinstance(v, dict):
                 self.__analyze_fromclause(v, tables, layer)
 
-    def __analyze_restargets(cls, tgtlist: list[dict[str, Any]]) -> list[ResTarget]:
-        psdlst: list[ResTarget] = []
+    def __analyze_restargets(cls, restargets: list[dict[str, Any]]) -> list[ResTarget]:
+        results: list[ResTarget] = []
 
-        for tgt in tgtlist:
+        for tgt in restargets:
             if "@" not in tgt.keys() or tgt["@"] != "ResTarget":
                 Exception()
 
@@ -66,9 +66,9 @@ class Analyzer:
                 else:
                     cls.__extract_refcols(v, refcols)
 
-            psdlst.append(ResTarget(name, refcols))
+            results.append(ResTarget(name, refcols))
 
-        return psdlst
+        return results
 
     def __extract_refcols(cls, tgt: dict[str, Any], refcols: list[Column]) -> None:
         if not isinstance(tgt, dict):
