@@ -15,7 +15,7 @@ class Column:
             return self.name
 
     def format(self) -> dict[str, str | Table]:
-        return {"name": self.name, "table": self.table}
+        return {"name": self.name, "table": self.table.format()}
 
     def set_table(self, table: Table) -> None:
         self.table = table

@@ -14,7 +14,7 @@ class Node(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def flatten(self) -> Any:
+    def flatten(self) -> dict[str, Any]:
         raise NotImplementedError()
 
 
@@ -39,7 +39,18 @@ class Select(Node):
         return {
             "statement": Select.STATEMENT,
             "layer": self.layer,
-            "columns": [c.format() for c in self.columns],
+            "columns": [
+                {
+                    (
+                        c.alias
+                        if c.alias
+                        else c.refcols[0].name
+                        if len(c.refcols) == 1
+                        else "column-" + str(i)
+                    ): [c.format() for c in c.refcols]
+                    for i, c in enumerate(self.columns)
+                }
+            ],
             "tables": [t.format() for t in self.tables],
         }
 
@@ -60,7 +71,7 @@ class Insert(Node):
     ) -> None:
         self.layer = 0
         self.tgtcols = tgtcols
-        self.tgttbl = tgttbl
+        self.tgttable = tgttbl
         self.subquery = subquery
 
     def format(self) -> dict[str, Any]:
@@ -68,7 +79,7 @@ class Insert(Node):
             "statement": Insert.STATEMENT,
             "layer": self.layer,
             "tgtcols": [col.format() for col in self.tgtcols],
-            "tgttbl": self.tgttbl.format(),
+            "tgttbl": self.tgttable.format(),
             "subquery": self.subquery.format(),
         }
 

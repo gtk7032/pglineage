@@ -18,8 +18,11 @@ class Table:
         else:
             return str(self.format())
 
-    def format(self) -> dict[str, Any]:
-        return {
-            "alias": self.alias,
-            "ref": self.ref if isinstance(self.ref, str) else self.ref.format(),
-        }
+    def format(self) -> str | dict[str, Any]:
+        return (
+            self.alias
+            if self.alias
+            else self.ref
+            if isinstance(self.ref, str)
+            else self.ref.format()
+        )
