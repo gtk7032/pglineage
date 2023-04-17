@@ -39,20 +39,38 @@ class Select(Node):
         return {
             "statement": Select.STATEMENT,
             "layer": self.layer,
-            "columns": [
-                {
-                    (
-                        c.alias
-                        if c.alias
-                        else c.refcols[0].name
-                        if len(c.refcols) == 1
-                        else "column-" + str(i)
-                    ): [c.format() for c in c.refcols]
-                    for i, c in enumerate(self.columns)
-                }
-            ],
-            "tables": [t.format() for t in self.tables],
+            "columns": {
+                (str(restgt) if str(restgt) else "column-" + str(i)): [
+                    rc for rc in restgt.refcols
+                ]
+                for i, restgt in enumerate(self.columns)
+            },
+            "tables": {str(t): t for t in self.tables},
         }
+
+    @classmethod
+    def trace(
+        cls, node: dict[str, Any], refcols: dict[str, Any], ansestors: dict[str, Any]
+    ):
+        if not node["layer"]:
+            refcols = node["columns"]
+
+        nexts_refcols: dict[str, Any] = {}
+        for colnm, cols in refcols.items():
+            nexts_refcols[colnm] = []
+            for col in cols:
+                if [
+                    tbl
+                    for tbl in node["tables"]
+                    if isinstance(tbl, str) and tbl == col.table
+                ]:
+                    ansestors[colnm].append(col)
+                else:
+                    nexts_refcols[colnm].append(col)
+
+        next_nodes = [tbl for tbl in node["tables"] if isinstance(tbl, dict)]
+        if nexts_refcols and next_nodes:
+            cls.trace()
 
     def flatten(self) -> dict[str, Any]:
         targets: list[list[Column]]

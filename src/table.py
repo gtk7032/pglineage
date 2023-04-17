@@ -16,13 +16,7 @@ class Table:
         elif isinstance(self.ref, str) and self.ref:
             return self.ref
         else:
-            return str(self.format())
+            return "noname"
 
     def format(self) -> str | dict[str, Any]:
-        return (
-            self.alias
-            if self.alias
-            else self.ref
-            if isinstance(self.ref, str)
-            else self.ref.format()
-        )
+        return self.ref if isinstance(self.ref, str) else self.ref.format()

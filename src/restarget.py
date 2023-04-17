@@ -12,7 +12,13 @@ class ResTarget:
         self.refcols = refcols
 
     def __str__(self) -> str:
-        return str(self.format())
+        return (
+            self.alias
+            if self.alias
+            else self.refcols[0].name
+            if len(self.refcols) == 1
+            else ""
+        )
 
     def format(self) -> dict[str, Any]:
         return {

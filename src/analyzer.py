@@ -13,7 +13,7 @@ class Analyzer:
         self.__rawstmts: list[Any] = []
 
     def load(self, sqls: str) -> None:
-        self.__rawstmts = [sql.stmt for sql in parse_sql(sqls)]
+        self.__rawstmts.extend(sql.stmt for sql in parse_sql(sqls))
 
     def analyze(self) -> list[node.Node]:
         nodes: list[node.Node] = []
