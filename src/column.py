@@ -10,12 +10,9 @@ class Column:
 
     def __str__(self) -> str:
         if self.table:
-            return str(self.table) + "." + self.name
+            return self.table + "." + self.name
         else:
             return self.name
-
-    def format(self) -> dict[str, str | Table]:
-        return {"name": self.name, "table": self.table.format()}
 
     def set_table(self, table: str) -> None:
         self.table = table

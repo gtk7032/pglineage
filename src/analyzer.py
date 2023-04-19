@@ -71,7 +71,7 @@ class Analyzer:
         if not isinstance(tgt, dict):
             return
 
-        if "@" in tgt.keys() and tgt["@"] == "ColumnRef" and "fields" in tgt.keys():
+        if tgt.get("@", "") == "ColumnRef" and "fields" in tgt.keys():
             refcol = []
             for field in tgt["fields"]:
                 if "sval" in field.keys():

@@ -5,7 +5,6 @@ from typing import Any
 
 import table
 from column import Column
-from restarget import ResTarget
 
 
 class Node(metaclass=abc.ABCMeta):
@@ -14,7 +13,7 @@ class Node(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def flatten(self) -> dict[str, Any]:
+    def flatten(self) -> Node:
         raise NotImplementedError()
 
 
