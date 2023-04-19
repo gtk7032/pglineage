@@ -4,7 +4,6 @@ from pglast import ast, parse_sql
 
 import node
 from column import Column
-from restarget import ResTarget
 from table import Table
 
 
@@ -25,52 +24,55 @@ class Analyzer:
         return nodes
 
     def __analyze_fromclause(
-        self, fc: dict[str, Any], tables: list[Table], layer: int = 0
+        self, fc: dict[str, Any], tables: dict[str, Table], layer: int = 0
     ) -> None:
         if "@" not in fc.keys():
             return
 
         if fc["@"] == "RangeSubselect":
-            tables.append(
-                Table(
-                    fc["alias"]["aliasname"],
-                    self.__analyze_select(fc["subquery"], layer + 1),
-                )
+            tables[fc["alias"]["aliasname"]] = Table(
+                self.__analyze_select(fc["subquery"], layer + 1),
             )
 
         elif fc["@"] == "RangeVar":
-            tbl = Table(
-                fc["alias"]["aliasname"] if "alias" in fc.keys() else "", fc["relname"]
-            )
-            if not [t for t in tables if str(t) == str(tbl)]:
-                tables.append(tbl)
+            tblnm = fc["alias"]["aliasname"] if "alias" in fc.keys() else fc["relname"]
+            if tblnm not in tables.keys():
+                tables[tblnm] = Table(fc["relname"])
 
         for v in fc.values():
             if isinstance(v, dict):
                 self.__analyze_fromclause(v, tables, layer)
 
-    def __analyze_restargets(cls, restargets: list[dict[str, Any]]) -> list[ResTarget]:
-        results: list[ResTarget] = []
+    def __analyze_restargets(
+        self, restargets: list[dict[str, Any]]
+    ) -> dict[str, list[Column]]:
+        results: dict[str, list[Column]] = {}
 
-        for tgt in restargets:
+        for i, tgt in enumerate(restargets):
             if "@" not in tgt.keys() or tgt["@"] != "ResTarget":
                 Exception()
 
-            name = tgt["name"] if "name" in tgt.keys() else ""
             refcols: list[Column] = []
 
             for v in tgt.values():
                 if isinstance(v, tuple):
                     for vv in v:
-                        cls.__extract_refcols(vv, refcols)
+                        self.__extract_refcols(vv, refcols)
                 else:
-                    cls.__extract_refcols(v, refcols)
+                    self.__extract_refcols(v, refcols)
 
-            results.append(ResTarget(name, refcols))
+            name = (
+                tgt["name"]
+                if "name" in tgt.keys()
+                else refcols[0].name
+                if len(refcols) == 1
+                else "column-" + str(i)
+            )
+            results[name] = refcols
 
         return results
 
-    def __extract_refcols(cls, tgt: dict[str, Any], refcols: list[Column]) -> None:
+    def __extract_refcols(self, tgt: dict[str, Any], refcols: list[Column]) -> None:
         if not isinstance(tgt, dict):
             return
 
@@ -86,32 +88,30 @@ class Analyzer:
         for v in tgt.values():
             if isinstance(v, tuple):
                 for vv in v:
-                    cls.__extract_refcols(vv, refcols)
+                    self.__extract_refcols(vv, refcols)
             else:
-                cls.__extract_refcols(v, refcols)
+                self.__extract_refcols(v, refcols)
 
     def __analyze_select(
         self, statement: dict[str, Any], layer: int = 0
     ) -> node.Select:
         columns = self.__analyze_restargets(statement["targetList"])
-        tables: list[Table] = []
+        tables: dict[str, Table] = {}
 
         if "withClause" in statement.keys():
             for cte in statement["withClause"]["ctes"]:
-                tables.append(
-                    Table(
-                        cte["ctename"],
-                        self.__analyze_select(cte["ctequery"], layer + 1),
-                    )
+                tables[cte["ctename"]] = Table(
+                    self.__analyze_select(cte["ctequery"], layer + 1)
                 )
 
         if "fromClause" in statement.keys():
             for fc in statement["fromClause"]:
                 self.__analyze_fromclause(fc, tables, layer)
 
-        if len(tables) == 1:
-            for col in columns:
-                col.attach_table(tables[0])
+        if len(tables.keys()) == 1:
+            for refcols in columns.values():
+                for rc in refcols:
+                    rc.set_table(next(iter(tables)))
 
         return node.Select(columns, tables, layer)
 

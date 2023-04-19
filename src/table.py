@@ -6,17 +6,8 @@ import node
 
 
 class Table:
-    def __init__(self, alias: str, ref: str | "node.Select") -> None:
-        self.alias = alias
+    def __init__(self, ref: str | "node.Select") -> None:
         self.ref = ref
-
-    def __str__(self) -> str:
-        if self.alias:
-            return self.alias
-        elif isinstance(self.ref, str) and self.ref:
-            return self.ref
-        else:
-            return "noname"
 
     def format(self) -> str | dict[str, Any]:
         return self.ref if isinstance(self.ref, str) else self.ref.format()

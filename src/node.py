@@ -23,8 +23,8 @@ class Select(Node):
 
     def __init__(
         self,
-        columns: list[ResTarget],
-        tables: list["table.Table"],
+        columns: dict[str, list[Column]],
+        tables: dict[str, "table.Table"],
         layer: int = 0,
     ) -> None:
         self.columns = columns
@@ -33,7 +33,7 @@ class Select(Node):
 
     @staticmethod
     def empty() -> Select:
-        return Select([], [], -1)
+        return Select({}, {}, -1)
 
     def format(self) -> dict[str, Any]:
         return {
