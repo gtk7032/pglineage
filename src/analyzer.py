@@ -36,8 +36,7 @@ class Analyzer:
 
         elif fc["@"] == "RangeVar":
             tblnm = fc["alias"]["aliasname"] if "alias" in fc.keys() else fc["relname"]
-            if tblnm not in tables.keys():
-                tables[tblnm] = Table(fc["relname"])
+            tables.setdefault(tblnm, Table(fc["relname"]))
 
         for v in fc.values():
             if isinstance(v, dict):
@@ -49,7 +48,7 @@ class Analyzer:
         results: dict[str, list[Column]] = {}
 
         for i, tgt in enumerate(restargets):
-            if "@" not in tgt.keys() or tgt["@"] != "ResTarget":
+            if tgt.get("@", "") != "ResTarget":
                 Exception()
 
             refcols: list[Column] = []
@@ -61,12 +60,8 @@ class Analyzer:
                 else:
                     self.__extract_refcols(v, refcols)
 
-            name = (
-                tgt["name"]
-                if "name" in tgt.keys()
-                else refcols[0].name
-                if len(refcols) == 1
-                else "column-" + str(i)
+            name = tgt.get(
+                "name", refcols[0].name if len(refcols) == 1 else "column-" + str(i)
             )
             results[name] = refcols
 
