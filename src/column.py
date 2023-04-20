@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from table import Table
-
 
 class Column:
     def __init__(self, table: str, name: str):

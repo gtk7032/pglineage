@@ -39,42 +39,40 @@ class Select(Node):
             "statement": Select.STATEMENT,
             "layer": self.layer,
             "columns": {
-                (str(restgt) if str(restgt) else "column-" + str(i)): [
-                    rc for rc in restgt.refcols
-                ]
-                for i, restgt in enumerate(self.columns)
+                colnm: [str(rc) for rc in refcols]
+                for colnm, refcols in self.columns.items()
             },
-            "tables": {str(t): t for t in self.tables},
+            "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
         }
 
-    @classmethod
-    def trace(
-        cls, node: dict[str, Any], refcols: dict[str, Any], ansestors: dict[str, Any]
-    ):
-        if not node["layer"]:
-            refcols = node["columns"]
+    # @classmethod
+    # def trace(
+    #     cls, node: dict[str, Any], refcols: dict[str, Any], ansestors: dict[str, Any]
+    # ):
+    #     if not node["layer"]:
+    #         refcols = node["columns"]
 
-        nexts_refcols: dict[str, Any] = {}
-        for colnm, cols in refcols.items():
-            nexts_refcols[colnm] = []
-            for col in cols:
-                if [
-                    tbl
-                    for tbl in node["tables"]
-                    if isinstance(tbl, str) and tbl == col.table
-                ]:
-                    ansestors[colnm].append(col)
-                else:
-                    nexts_refcols[colnm].append(col)
+    #     nexts_refcols: dict[str, Any] = {}
+    #     for colnm, cols in refcols.items():
+    #         nexts_refcols[colnm] = []
+    #         for col in cols:
+    #             if [
+    #                 tbl
+    #                 for tbl in node["tables"]
+    #                 if isinstance(tbl, str) and tbl == col.table
+    #             ]:
+    #                 ansestors[colnm].append(col)
+    #             else:
+    #                 nexts_refcols[colnm].append(col)
 
-        next_nodes = [tbl for tbl in node["tables"] if isinstance(tbl, dict)]
-        if nexts_refcols and next_nodes:
-            cls.trace()
+    #     next_nodes = [tbl for tbl in node["tables"] if isinstance(tbl, dict)]
+    #     if nexts_refcols and next_nodes:
+    #         cls.trace()
 
     def flatten(self) -> dict[str, Any]:
-        targets: list[list[Column]]
-        refs: list[Column]
-        return {"targets": targets, "reds": refs}
+        # targets: list[list[Column]]
+        # refs: list[Column]
+        return {}
 
 
 class Insert(Node):
