@@ -45,6 +45,29 @@ class Select(Node):
             "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
         }
 
+    def trace(self, column: str, results: list[Column]) -> None:
+        for refcol in self.columns[column]:
+            if refcol.table not in self.tables.keys():
+                raise Exception()
+            if isinstance(self.tables[refcol.table].ref, str):
+                results.append(refcol)
+            elif isinstance(self.tables[refcol.table].ref, Select):
+                self.tables[refcol.table].ref.trace(refcol.name, results)
+            else:
+                raise Exception()
+
+    def flatten(self) -> dict[str, list[Column]]:
+        f_columns: dict[str, list[Column]] = {}
+        for column, refcols in self.columns.items():
+            f_refcols: list[Column] = []
+            for refcol in refcols:
+                if isinstance(self.tables[refcol.table].ref, str):
+                    f_refcols.append(refcol)
+                elif isinstance(self.tables[refcol.table].ref, Select):
+                    self.tables[refcol.table].ref.trace(column, f_refcols)
+            f_columns[column] = f_refcols
+        return f_columns
+
     # @classmethod
     # def trace(
     #     cls, node: dict[str, Any], refcols: dict[str, Any], ansestors: dict[str, Any]
