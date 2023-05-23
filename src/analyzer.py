@@ -18,12 +18,12 @@ class Analyzer:
         nodes: list[node.Node] = []
         for rawstmt in self.__rawstmts:
             if isinstance(rawstmt, ast.SelectStmt):
-                nodes.append(self.__analyze_select(rawstmt(skip_none=True)))
+                nodes.append(self._analyze_select(rawstmt(skip_none=True)))
             elif isinstance(rawstmt, ast.InsertStmt):
-                nodes.append(self.__analyze_insert(rawstmt(skip_none=True)))
+                nodes.append(self._analyze_insert(rawstmt(skip_none=True)))
         return nodes
 
-    def __analyze_fromclause(
+    def _analyze_fromclause(
         self, fc: dict[str, Any], tables: dict[str, Table], layer: int = 0
     ) -> None:
         if "@" not in fc.keys():
@@ -31,7 +31,7 @@ class Analyzer:
 
         if fc["@"] == "RangeSubselect":
             tables[fc["alias"]["aliasname"]] = Table(
-                self.__analyze_select(fc["subquery"], layer + 1),
+                self._analyze_select(fc["subquery"], layer + 1),
             )
 
         elif fc["@"] == "RangeVar":
@@ -40,9 +40,9 @@ class Analyzer:
 
         for v in fc.values():
             if isinstance(v, dict):
-                self.__analyze_fromclause(v, tables, layer)
+                self._analyze_fromclause(v, tables, layer)
 
-    def __analyze_restargets(
+    def _analyze_restargets(
         self, restargets: list[dict[str, Any]]
     ) -> dict[str, list[Column]]:
         results: dict[str, list[Column]] = {}
@@ -56,9 +56,9 @@ class Analyzer:
             for v in tgt.values():
                 if isinstance(v, tuple):
                     for vv in v:
-                        self.__extract_refcols(vv, refcols)
+                        self._extract_refcols(vv, refcols)
                 else:
-                    self.__extract_refcols(v, refcols)
+                    self._extract_refcols(v, refcols)
 
             name = tgt.get(
                 "name", refcols[0].name if len(refcols) == 1 else "column-" + str(i)
@@ -67,7 +67,7 @@ class Analyzer:
 
         return results
 
-    def __extract_refcols(self, tgt: dict[str, Any], refcols: list[Column]) -> None:
+    def _extract_refcols(self, tgt: dict[str, Any], refcols: list[Column]) -> None:
         if not isinstance(tgt, dict):
             return
 
@@ -83,25 +83,25 @@ class Analyzer:
         for v in tgt.values():
             if isinstance(v, tuple):
                 for vv in v:
-                    self.__extract_refcols(vv, refcols)
+                    self._extract_refcols(vv, refcols)
             else:
-                self.__extract_refcols(v, refcols)
+                self._extract_refcols(v, refcols)
 
-    def __analyze_select(
+    def _analyze_select(
         self, statement: dict[str, Any], layer: int = 0
     ) -> node.Select:
-        columns = self.__analyze_restargets(statement["targetList"])
+        columns = self._analyze_restargets(statement["targetList"])
         tables: dict[str, Table] = {}
 
         if "withClause" in statement.keys():
             for cte in statement["withClause"]["ctes"]:
                 tables[cte["ctename"]] = Table(
-                    self.__analyze_select(cte["ctequery"], layer + 1)
+                    self._analyze_select(cte["ctequery"], layer + 1)
                 )
 
         if "fromClause" in statement.keys():
             for fc in statement["fromClause"]:
-                self.__analyze_fromclause(fc, tables, layer)
+                self._analyze_fromclause(fc, tables, layer)
 
         if len(tables.keys()) == 1:
             for refcols in columns.values():
@@ -110,14 +110,14 @@ class Analyzer:
 
         return node.Select(columns, tables, layer)
 
-    def __analyze_insert(self, stmt: dict[str, Any]) -> node.Insert:
-        res = self.__analyze_restargets(stmt["cols"])
+    def _analyze_insert(self, stmt: dict[str, Any]) -> node.Insert:
+        res = self._analyze_restargets(stmt["cols"])
         rel = stmt["relation"]
         tbl = Table(
             rel["alias"]["aliasname"] if "alias" in rel.keys() else "", rel["relname"]
         )
         select = (
-            self.__analyze_select(stmt["selectStmt"], 1)
+            self._analyze_select(stmt["selectStmt"], 1)
             if "selectStmt" in stmt.keys()
             else node.Select.empty()
         )
