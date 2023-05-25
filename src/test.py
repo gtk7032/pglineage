@@ -1,12 +1,10 @@
-from __future__ import annotations
-
+# coding: utf-8
 from graphviz import Digraph
 
-import node
-
 dot = Digraph(format="png")
+# フォント設定
 dot.attr("node", fontname="MS Gothic")
-
+# ノード作成
 dot.node("項目1", shape="record", label="<lp> 左| 中央 |<rp> 右")
 dot.node("項目2")
 dot.node("項目3")
@@ -14,12 +12,3 @@ dot.node("項目3")
 dot.edge("項目1:lp", "項目2")
 dot.edge("項目1:rp", "項目3")
 dot.render("graphviz-test25")
-
-
-class Lineage:
-    def __init__(self) -> None:
-        pass
-
-    @staticmethod
-    def create(nodes: list[node.Node]) -> Lineage:
-        pass

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Any
+from typing import Any, Tuple
 
 import table
 from column import Column
@@ -51,14 +51,14 @@ class Select(Node):
             "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
         }
 
-    def trace(self, column: str, results: list[Column]) -> None:
+    def _trace(self, column: str, results: list[Column]) -> None:
         for refcol in self.columns[column]:
             if refcol.table not in self.tables.keys():
                 raise Exception()
             if isinstance(self.tables[refcol.table].ref, str):
                 results.append(refcol)
             elif isinstance(self.tables[refcol.table].ref, Select):
-                self.tables[refcol.table].ref.trace(refcol.name, results)
+                self.tables[refcol.table].ref._trace(refcol.name, results)
 
     def flatten(self) -> Select:
         f_columns: dict[str, list[Column]] = {}
@@ -70,9 +70,21 @@ class Select(Node):
                 if isinstance(self.tables[refcol.table].ref, str):
                     f_refcols.append(refcol)
                 elif isinstance(self.tables[refcol.table].ref, Select):
-                    self.tables[refcol.table].ref.trace(refcol.name, f_refcols)
+                    self.tables[refcol.table].ref._trace(refcol.name, f_refcols)
             f_columns[column] = f_refcols
         return Select(f_columns)
+
+    def summary(self) -> Tuple[dict[str, dict[str, set[str]]], list[str]]:
+        flat = self.flatten()
+        out_columns: list[str] = []
+        in_tables: dict[str, dict[str, set[str]]] = {}
+        for colname, refcols in flat.columns.items():
+            out_columns.append(colname)
+            for refcol in refcols:
+                in_tables.setdefault(refcol.table, {})
+                in_tables[refcol.table].setdefault(refcol.name, set())
+                in_tables[refcol.table][refcol.name].add(colname)
+        return in_tables, out_columns
 
 
 class Insert(Node):

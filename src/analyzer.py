@@ -87,9 +87,7 @@ class Analyzer:
             else:
                 self._extract_refcols(v, refcols)
 
-    def _analyze_select(
-        self, statement: dict[str, Any], layer: int = 0
-    ) -> node.Select:
+    def _analyze_select(self, statement: dict[str, Any], layer: int = 0) -> node.Select:
         columns = self._analyze_restargets(statement["targetList"])
         tables: dict[str, Table] = {}
 
