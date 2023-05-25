@@ -15,7 +15,10 @@ class Node(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def flatten(self) -> Node:
         raise NotImplementedError()
-
+    
+    @abc.abstractmethod
+    def summary(self) -> Tuple[dict[str, dict[str, set[str]]], dict[str, list[str]]]:
+        raise NotImplementedError()
 
 class Select(Node):
     STATEMENT = "Select"
@@ -74,17 +77,17 @@ class Select(Node):
             f_columns[column] = f_refcols
         return Select(f_columns)
 
-    def summary(self) -> Tuple[dict[str, dict[str, set[str]]], list[str]]:
+    def summary(self) -> Tuple[dict[str, dict[str, set[str]]], dict[str, list[str]]]:
         flat = self.flatten()
-        out_columns: list[str] = []
+        out_tables: dict[str, list[str]] = {"": []}
         in_tables: dict[str, dict[str, set[str]]] = {}
         for colname, refcols in flat.columns.items():
-            out_columns.append(colname)
+            out_tables[""].append(colname)
             for refcol in refcols:
                 in_tables.setdefault(refcol.table, {})
                 in_tables[refcol.table].setdefault(refcol.name, set())
                 in_tables[refcol.table][refcol.name].add(colname)
-        return in_tables, out_columns
+        return in_tables, out_tables
 
 
 class Insert(Node):
