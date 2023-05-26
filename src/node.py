@@ -19,7 +19,9 @@ class Node(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def summary(
         self,
-    ) -> dict[str, set[str]], dict[str, set[str]], dict[int, Tuple[Column, Column]]:
+    ) -> Tuple[
+        dict[str, set[str]], dict[str, set[str]], dict[int, Tuple[Column, Column]]
+    ]:
         raise NotImplementedError()
 
 
