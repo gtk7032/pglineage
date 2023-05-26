@@ -13,12 +13,15 @@ class Node(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def flatten(self) -> Node:
+    def _flatten(self) -> Node:
         raise NotImplementedError()
-    
+
     @abc.abstractmethod
-    def summary(self) -> Tuple[dict[str, dict[str, set[str]]], dict[str, list[str]]]:
+    def summary(
+        self,
+    ) -> dict[str, set[str]], dict[str, set[str]], dict[int, Tuple[Column, Column]]:
         raise NotImplementedError()
+
 
 class Select(Node):
     STATEMENT = "Select"
@@ -63,7 +66,7 @@ class Select(Node):
             elif isinstance(self.tables[refcol.table].ref, Select):
                 self.tables[refcol.table].ref._trace(refcol.name, results)
 
-    def flatten(self) -> Select:
+    def _flatten(self) -> Select:
         f_columns: dict[str, list[Column]] = {}
         for column, refcols in self.columns.items():
             f_refcols: list[Column] = []
@@ -77,17 +80,26 @@ class Select(Node):
             f_columns[column] = f_refcols
         return Select(f_columns)
 
-    def summary(self) -> Tuple[dict[str, dict[str, set[str]]], dict[str, list[str]]]:
-        flat = self.flatten()
-        out_tables: dict[str, list[str]] = {"": []}
-        in_tables: dict[str, dict[str, set[str]]] = {}
-        for colname, refcols in flat.columns.items():
-            out_tables[""].append(colname)
+    def summary(
+        self,
+    ) -> Tuple[
+        dict[str, set[str]], dict[str, set[str]], dict[int, Tuple[Column, Column]]
+    ]:
+        out_table: dict[str, set[str]] = {"": set()}
+        in_tables: dict[str, set[str]] = {}
+        dirs: dict[int, Tuple[Column, Column]] = {}
+        for colname, refcols in self._flatten().columns.items():
+            out_table[""].add(colname)
             for refcol in refcols:
-                in_tables.setdefault(refcol.table, {})
-                in_tables[refcol.table].setdefault(refcol.name, set())
-                in_tables[refcol.table][refcol.name].add(colname)
-        return in_tables, out_tables
+                in_tables.setdefault(refcol.table, set())
+                in_tables[refcol.table].update(refcol.name)
+
+                from_ = refcol
+                to = Column("", colname)
+                id = hash(str(from_) + str(to))
+                dirs.setdefault(id, (from_, to))
+
+        return in_tables, out_table, dirs
 
 
 class Insert(Node):
@@ -113,7 +125,7 @@ class Insert(Node):
             "subquery": self.subquery.format(),
         }
 
-    def flatten(self) -> dict[str, Any]:
+    def _flatten(self) -> dict[str, Any]:
         dst_table: str
         dst_cols: dict[str, list[Column]]
         refs: list[Column]

@@ -42,4 +42,4 @@ if __name__ == "__main__":
     analyzer.load(sql)
     nodes = analyzer.analyze()
     for nd in nodes:
-        pprint(nd.flatten().format())
+        pprint(nd._flatten().format())

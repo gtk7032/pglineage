@@ -22,14 +22,25 @@ class Lineage:
 
     @staticmethod
     def create(nodes: list[node.Node]) -> Lineage:
-        in_tables: dict[str, dict[str, set[str]]] = {}
+        in_tables: dict[str, set[str]] = {}
         out_tables: dict[str, set[str]] = {}
+        dirs: dict[str, set[str]] = {}
 
         for nd in nodes:
-            ins, out = nd.summary()
+            ins, out, dirs_ = nd.summary()
 
             for tbl, cols in ins.items():
-                if tbl in in_tables.keys():
+                in_tables.setdefault(tbl, set())
+                in_tables[tbl].update(cols)
+
+            for 
+
+            tbl = next(iter(out.keys()))
+            tbl = tbl if tbl else len(out_tables[tbl])
+            out_tables.setdefault(tbl, set())
+            out_tables[tbl].update(out[tbl])
+
+
                     for col, refs in cols.items():
                         if col in in_tables[tbl].keys():
                             in_tables[tbl][col].update(refs)
