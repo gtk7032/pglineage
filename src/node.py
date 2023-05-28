@@ -20,7 +20,7 @@ class Node(metaclass=abc.ABCMeta):
     def summary(
         self,
     ) -> Tuple[
-        dict[str, set[str]], dict[str, set[str]], dict[int, Tuple[Column, Column]]
+        dict[str, set[str]], dict[str, set[str]], dict[str, dict[str, Column | str]]
     ]:
         raise NotImplementedError()
 
@@ -33,6 +33,7 @@ class Select(Node):
         columns: dict[str, list[Column]],
         tables: dict[str, table.Table] = {},
         layer: int = 0,
+        name: str = "",
     ) -> None:
         self.columns = columns
         if tables:
@@ -43,10 +44,11 @@ class Select(Node):
             }
             self.tables = {st: table.Table(st) for st in set_tables}
         self.layer = layer
+        self.name = name
 
     @staticmethod
     def empty() -> Select:
-        return Select({}, {}, -1)
+        return Select({}, {}, -1, "")
 
     def format(self) -> dict[str, Any]:
         return {
@@ -57,6 +59,7 @@ class Select(Node):
                 for colnm, refcols in self.columns.items()
             },
             "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
+            "name": self.name,
         }
 
     def _trace(self, column: str, results: list[Column]) -> None:
@@ -80,16 +83,16 @@ class Select(Node):
                 elif isinstance(self.tables[refcol.table].ref, Select):
                     self.tables[refcol.table].ref._trace(refcol.name, f_refcols)
             f_columns[column] = f_refcols
-        return Select(f_columns)
+        return Select(f_columns, name=self.name)
 
     def summary(
         self,
     ) -> Tuple[
-        dict[str, set[str]], dict[str, set[str]], dict[int, Tuple[Column, Column]]
+        dict[str, set[str]], dict[str, set[str]], dict[str, dict[str, Column | str]]
     ]:
         out_table: dict[str, set[str]] = {"": set()}
         in_tables: dict[str, set[str]] = {}
-        dirs: dict[int, Tuple[Column, Column]] = {}
+        dirs: dict[str, dict[str, Column | str]] = {}
         for colname, refcols in self._flatten().columns.items():
             out_table[""].add(colname)
             for refcol in refcols:
@@ -98,8 +101,8 @@ class Select(Node):
 
                 from_ = refcol
                 to = Column("", colname)
-                id = hash(str(from_) + str(to))
-                dirs.setdefault(id, (from_, to))
+                key = self.name + str(from_) + str(to)
+                dirs.setdefault(key, {"name": self.name, "from": from_, "to": to})
 
         return in_tables, out_table, dirs
 

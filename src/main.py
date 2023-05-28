@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from pprint import pprint
-
 from analyzer import Analyzer
+
+# from pprint import pprint
+from lineage import Lineage
 
 # sql = "select a, b, c from tbl;"
 # sql = (
@@ -39,7 +40,9 @@ sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age
 
 if __name__ == "__main__":
     analyzer = Analyzer()
-    analyzer.load(sql)
+    analyzer.load(sql, "hello")
     nodes = analyzer.analyze()
-    for nd in nodes:
-        pprint(nd._flatten().format())
+    # for nd in nodes:
+    #     pprint(nd._flatten().format())
+    lineage = Lineage.create(nodes)
+    lineage.draw(1)

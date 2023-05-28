@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Tuple
 
 from pglast import ast, parse_sql
 
@@ -9,29 +9,35 @@ from table import Table
 
 class Analyzer:
     def __init__(self) -> None:
-        self.__rawstmts: list[Any] = []
+        self.__rawstmts: list[Tuple[str, Any]] = []
 
-    def load(self, sqls: str) -> None:
-        self.__rawstmts.extend(sql.stmt for sql in parse_sql(sqls))
+    def load(self, sqls: str, name: str) -> None:
+        self.__rawstmts.extend((name, sql.stmt) for sql in parse_sql(sqls))
 
     def analyze(self) -> list[node.Node]:
         nodes: list[node.Node] = []
-        for rawstmt in self.__rawstmts:
+        for name, rawstmt in self.__rawstmts:
             if isinstance(rawstmt, ast.SelectStmt):
-                nodes.append(self._analyze_select(rawstmt(skip_none=True)))
+                nodes.append(self._analyze_select(rawstmt(skip_none=True), name=name))
             elif isinstance(rawstmt, ast.InsertStmt):
-                nodes.append(self._analyze_insert(rawstmt(skip_none=True)))
+                nodes.append(
+                    self._analyze_insert(name, rawstmt(skip_none=True), name=name)
+                )
         return nodes
 
     def _analyze_fromclause(
-        self, fc: dict[str, Any], tables: dict[str, Table], layer: int = 0
+        self,
+        fc: dict[str, Any],
+        tables: dict[str, Table],
+        layer: int = 0,
+        name: str = "",
     ) -> None:
         if "@" not in fc.keys():
             return
 
         if fc["@"] == "RangeSubselect":
             tables[fc["alias"]["aliasname"]] = Table(
-                self._analyze_select(fc["subquery"], layer + 1),
+                self._analyze_select(fc["subquery"], layer + 1, name=name),
             )
 
         elif fc["@"] == "RangeVar":
@@ -40,7 +46,7 @@ class Analyzer:
 
         for v in fc.values():
             if isinstance(v, dict):
-                self._analyze_fromclause(v, tables, layer)
+                self._analyze_fromclause(v, tables, layer, name)
 
     def _analyze_restargets(
         self, restargets: list[dict[str, Any]]
@@ -87,28 +93,30 @@ class Analyzer:
             else:
                 self._extract_refcols(v, refcols)
 
-    def _analyze_select(self, statement: dict[str, Any], layer: int = 0) -> node.Select:
+    def _analyze_select(
+        self, statement: dict[str, Any], layer: int = 0, name: str = ""
+    ) -> node.Select:
         columns = self._analyze_restargets(statement["targetList"])
         tables: dict[str, Table] = {}
 
         if "withClause" in statement.keys():
             for cte in statement["withClause"]["ctes"]:
                 tables[cte["ctename"]] = Table(
-                    self._analyze_select(cte["ctequery"], layer + 1)
+                    self._analyze_select(cte["ctequery"], layer + 1, name)
                 )
 
         if "fromClause" in statement.keys():
             for fc in statement["fromClause"]:
-                self._analyze_fromclause(fc, tables, layer)
+                self._analyze_fromclause(fc, tables, layer, name)
 
         if len(tables.keys()) == 1:
             for refcols in columns.values():
                 for rc in refcols:
                     rc.set_table(next(iter(tables)))
 
-        return node.Select(columns, tables, layer)
+        return node.Select(columns, tables, layer, name)
 
-    def _analyze_insert(self, stmt: dict[str, Any]) -> node.Insert:
+    def _analyze_insert(self, name: str, stmt: dict[str, Any]) -> node.Insert:
         res = self._analyze_restargets(stmt["cols"])
         rel = stmt["relation"]
         tbl = Table(
@@ -119,4 +127,4 @@ class Analyzer:
             if "selectStmt" in stmt.keys()
             else node.Select.empty()
         )
-        return node.Insert(res, tbl, select)
+        return node.Insert(name, res, tbl, select)
