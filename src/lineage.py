@@ -53,7 +53,7 @@ class Lineage:
                 for fld in flds:
                     sep = "|" if label else ""
                     label += sep + "<" + fld + "> " + fld
-                    dot.node(tbl, shape="record", label=label, xlabel=xlabel)
+                dot.node(tbl, shape="record", label=label, xlabel=xlabel)
 
         draw_tables(self._in_tables)
         draw_tables(self._out_tables)
