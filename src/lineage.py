@@ -48,11 +48,12 @@ class Lineage:
 
         def draw_tables(tables: dict[str, dict[str, None]]) -> None:
             for tbl, flds in tables.items():
+                xlabel = "" if tbl.startswith(node.Select.STATEMENT) else tbl
                 label = ""
                 for fld in flds:
                     sep = "|" if label else ""
                     label += sep + "<" + fld + "> " + fld
-                    dot.node(tbl, shape="record", label=label, xlabel=tbl)
+                    dot.node(tbl, shape="record", label=label, xlabel=xlabel)
 
         draw_tables(self._in_tables)
         draw_tables(self._out_tables)
