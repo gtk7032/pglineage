@@ -67,7 +67,7 @@ class Analyzer:
                     self._extract_refcols(v, refcols)
 
             name = tgt.get(
-                "name", refcols[0].name if len(refcols) == 1 else "column-" + str(i)
+                "name", refcols[0].name if len(refcols) == 1 else "column-" + str(i + 1)
             )
             results[name] = refcols
 

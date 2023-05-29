@@ -20,13 +20,16 @@ class Node(metaclass=abc.ABCMeta):
     def summary(
         self,
     ) -> Tuple[
-        dict[str, set[str]], dict[str, set[str]], dict[str, dict[str, Column | str]]
+        dict[str, dict[str, None]],
+        dict[str, dict[str, None]],
+        dict[str, dict[str, Column | str]],
     ]:
         raise NotImplementedError()
 
 
 class Select(Node):
     STATEMENT = "Select"
+    __COUNT = 0
 
     def __init__(
         self,
@@ -88,19 +91,24 @@ class Select(Node):
     def summary(
         self,
     ) -> Tuple[
-        dict[str, set[str]], dict[str, set[str]], dict[str, dict[str, Column | str]]
+        dict[str, dict[str, None]],
+        dict[str, dict[str, None]],
+        dict[str, dict[str, Column | str]],
     ]:
-        out_table: dict[str, set[str]] = {"": set()}
-        in_tables: dict[str, set[str]] = {}
+        out_tblnm = Select.STATEMENT + "-" + str(Select.__COUNT)
+        Select.__COUNT += 1
+
+        out_table: dict[str, dict[str, None]] = {out_tblnm: {}}
+        in_tables: dict[str, dict[str, None]] = {}
         dirs: dict[str, dict[str, Column | str]] = {}
         for colname, refcols in self._flatten().columns.items():
-            out_table[""].add(colname)
+            out_table[out_tblnm].setdefault(colname)
             for refcol in refcols:
-                in_tables.setdefault(refcol.table, set())
-                in_tables[refcol.table].update(refcol.name)
+                in_tables.setdefault(refcol.table, {})
+                in_tables[refcol.table].setdefault(refcol.name)
 
                 from_ = refcol
-                to = Column("", colname)
+                to = Column(out_tblnm, colname)
                 key = self.name + str(from_) + str(to)
                 dirs.setdefault(key, {"name": self.name, "from": from_, "to": to})
 
