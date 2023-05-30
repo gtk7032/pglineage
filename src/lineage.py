@@ -9,13 +9,11 @@ from column import Column
 class Lineage:
     def __init__(
         self,
-        in_tables: dict[str, dict[str, None]] = {},
-        out_tables: dict[str, dict[str, None]] = {},
-        dirs: dict[str, dict[str, Column | str]] = {},
     ) -> None:
-        self._in_tables = in_tables
-        self._out_tables = out_tables
-        self._dirs = dirs
+        self._in_tables: dict[str, dict[str, None]] = {}
+        self._out_tables: dict[str, dict[str, None]] = {}
+        self._dirs: dict[str, dict[str, Column | str]] = {}
+        self._flowused_in_tables: dict[str, dict[str, None]] = {}
         self.__dot: gv.Digraph = None
 
     @staticmethod
@@ -35,6 +33,12 @@ class Lineage:
             lineage._out_tables[tbl].update(next(iter(out.values())))
 
             lineage._dirs.update(dirs)
+
+            for intbl, cols in lineage._in_tables.items():
+                for dir in lineage._dirs.values():
+                    if intbl == dir["from"].table:
+                        lineage._flowused_in_tables[intbl] = cols
+                        break
 
         return lineage
 
@@ -86,7 +90,7 @@ class Lineage:
                     label += sep + "<" + fld + "> " + fld
                 self.__dot.node(tbl, shape="record", label=label, xlabel=xlabel)
 
-        draw_tables(self._in_tables)
+        draw_tables(self._flowused_in_tables)
         draw_tables(self._out_tables)
 
         for dir in self._dirs.values():
@@ -98,6 +102,9 @@ class Lineage:
             for tbl in tables.keys():
                 self.__dot.node(tbl, shape="cylinder", label=self.out_table(tbl))
 
-        draw_tables(self._in_tables)
+        draw_tables(self._flowused_in_tables)
         draw_tables(self._out_tables)
         self.draw_process()
+
+    def draw_3(self) -> None:
+        pass

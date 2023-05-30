@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from analyzer import Analyzer
+from pprint import pprint
 
-# from pprint import pprint
+from analyzer import Analyzer
 from lineage import Lineage
 
 # sql = "select a, b, c from tbl;"
@@ -22,7 +22,7 @@ from lineage import Lineage
 
 # sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
 
-sql = "SELECT tbl1.res AS res2, tbl2.res, tbl3.res FROM tbl1 INNER JOIN tbl2 ON tbl1.col = tbl2.col, tbl3 WHERE tbl1.col2 = tbl3.col2;"
+sql = "SELECT tbl1.res AS res2, tbl2.res, tbl3.res FROM tbl1 INNER JOIN tbl2 ON tbl1.col = tbl2.col, tbl3, tbl4 WHERE tbl1.col2 = tbl4.col2;"
 
 # sql = (
 #     "with get_top5_amount_id as ("
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     analyzer = Analyzer()
     analyzer.load(sql, "hello")
     nodes = analyzer.analyze()
-    # for nd in nodes:
-    #     pprint(nd._flatten().format())
+    for nd in nodes:
+        pprint(nd.format())
     lineage = Lineage.create(nodes)
-    lineage.draw(2)
+    lineage.draw(1)
