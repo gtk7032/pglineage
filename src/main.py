@@ -20,7 +20,9 @@ from lineage import Lineage
 
 # sql = "INSERT INTO new_table ( col1, col2, col3 ) WITH tmp_table AS ( SELECT col1 as colX, col2, col3, 5 FROM old_table ) SELECT col1, col2, col3, 4 FROM tmp_table"
 
-sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
+# sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
+
+sql = "SELECT tbl1.res AS res2, tbl2.res, tbl3.res FROM tbl1 INNER JOIN tbl2 ON tbl1.col = tbl2.col, tbl3 WHERE tbl1.col2 = tbl3.col2;"
 
 # sql = (
 #     "with get_top5_amount_id as ("
@@ -45,4 +47,4 @@ if __name__ == "__main__":
     # for nd in nodes:
     #     pprint(nd._flatten().format())
     lineage = Lineage.create(nodes)
-    lineage.draw(1)
+    lineage.draw(2)

@@ -69,6 +69,8 @@ class Analyzer:
             name = tgt.get(
                 "name", refcols[0].name if len(refcols) == 1 else "column-" + str(i + 1)
             )
+            cnt = len([True for nm in results.keys() if nm == name])
+            name += "(" + str(cnt) + ")" if cnt else ""
             results[name] = refcols
 
         return results
