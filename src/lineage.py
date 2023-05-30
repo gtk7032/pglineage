@@ -16,6 +16,7 @@ class Lineage:
         self._in_tables = in_tables
         self._out_tables = out_tables
         self._dirs = dirs
+        self.__dot: gv.Digraph = None
 
     @staticmethod
     def merge(nodes: list[node.Node]) -> Lineage:
@@ -41,31 +42,62 @@ class Lineage:
     def create(nodes: list[node.Node]) -> Lineage:
         return Lineage.merge(nodes)
 
-    def draw(self, type: int) -> None:
-        dot = gv.Digraph(format="png", filename="pglineage.gv")
-        dot.attr("graph", rankdir="LR")
-        dot.attr("node", fontname="MS Gothic")
+    def draw_process(self) -> None:
+        names = {dir["name"] for dir in self._dirs.values()}
+        for name in names:
+            self.__dot.node(name, label=name, shape="note")
 
+        ps = {}
+        for dir in self._dirs.values():
+            ps.setdefault(
+                dir["from"].table + dir["name"],
+                (dir["from"].table, dir["name"]),
+            )
+            ps.setdefault(
+                dir["name"] + dir["to"].table,
+                (dir["name"], dir["to"].table),
+            )
+
+        for p in ps.values():
+            self.__dot.edge(p[0], p[1])
+
+    def draw(self, type: int) -> None:
+        self.__dot = gv.Digraph(format="png", filename="pglineage.gv")
+        self.__dot.attr("graph", rankdir="LR")
+        self.__dot.attr("node", fontname="MS Gothic")
+
+        if type == 1:
+            self.draw_1()
+        elif type == 2:
+            self.draw_2()
+
+        self.__dot.render("pglineage")
+
+    def out_table(self, tbl: str) -> str:
+        return "" if tbl.startswith(node.Select.STATEMENT) else tbl
+
+    def draw_1(self) -> None:
         def draw_tables(tables: dict[str, dict[str, None]]) -> None:
             for tbl, flds in tables.items():
-                xlabel = "" if tbl.startswith(node.Select.STATEMENT) else tbl
+                xlabel = self.out_table(tbl)
                 label = ""
                 for fld in flds:
                     sep = "|" if label else ""
                     label += sep + "<" + fld + "> " + fld
-                dot.node(tbl, shape="record", label=label, xlabel=xlabel)
+                self.__dot.node(tbl, shape="record", label=label, xlabel=xlabel)
 
         draw_tables(self._in_tables)
         draw_tables(self._out_tables)
 
-        # names = {dir["name"] for dir in self._dirs.values()}
-        # for name in names:
-        #     dot.node(name, label=name)
-
         for dir in self._dirs.values():
             f, t, n = dir["from"], dir["to"], dir["name"]
-            dot.edge(f.table + ":" + f.name, t.table + ":" + t.name, label=n)
-            # dot.edge(f.table + ":" + f.name, n)
-            # dot.edge(n, t.table + ":" + t.name)
+            self.__dot.edge(f.table + ":" + f.name, t.table + ":" + t.name, label="")
 
-        dot.render("pglineage")
+    def draw_2(self) -> None:
+        def draw_tables(tables: dict[str, dict[str, None]]) -> None:
+            for tbl in tables.keys():
+                self.__dot.node(tbl, shape="cylinder", label=self.out_table(tbl))
+
+        draw_tables(self._in_tables)
+        draw_tables(self._out_tables)
+        self.draw_process()
