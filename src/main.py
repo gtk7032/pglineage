@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pprint import pprint
 
 from analyzer import Analyzer
@@ -41,10 +42,14 @@ sql = "SELECT tbl1.res AS res2, tbl2.res, tbl3.res FROM tbl1 INNER JOIN tbl2 ON 
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--type", choices=[1, 2, 3], type=int)
+    args = parser.parse_args()
+
     analyzer = Analyzer()
     analyzer.load(sql, "hello")
     nodes = analyzer.analyze()
     for nd in nodes:
         pprint(nd.format())
     lineage = Lineage.create(nodes)
-    lineage.draw(1)
+    lineage.draw(args.type)

@@ -10,10 +10,10 @@ class Lineage:
     def __init__(
         self,
     ) -> None:
-        self._in_tables: dict[str, dict[str, None]] = {}
-        self._out_tables: dict[str, dict[str, None]] = {}
-        self._dirs: dict[str, dict[str, Column | str]] = {}
-        self._flowused_in_tables: dict[str, dict[str, None]] = {}
+        self._src_tbls: dict[str, dict[str, None]] = {}
+        self._tgt_tbls: dict[str, dict[str, None]] = {}
+        self._ref_tbls: dict[str, dict[str, None]] = {}
+        self._edges: dict[str, dict[str, Column | str]] = {}
         self.__dot: gv.Digraph = None
 
     @staticmethod
@@ -24,21 +24,33 @@ class Lineage:
             ins, out, dirs = nd.summary()
 
             for tbl, cols in ins.items():
-                lineage._in_tables.setdefault(tbl, {})
-                lineage._in_tables[tbl].update(cols)
+                lineage._src_tbls.setdefault(tbl, {})
+                lineage._src_tbls[tbl].update(cols)
 
             tbl = next(iter(out.keys()))
-            tbl = tbl if tbl else str(len(lineage._out_tables))
-            lineage._out_tables.setdefault(tbl, {})
-            lineage._out_tables[tbl].update(next(iter(out.values())))
+            lineage._tgt_tbls.setdefault(tbl, {})
+            lineage._tgt_tbls[tbl].update(out[tbl])
 
-            lineage._dirs.update(dirs)
+            lineage._edges.update(dirs)
 
-            for intbl, cols in lineage._in_tables.items():
-                for dir in lineage._dirs.values():
-                    if intbl == dir["from"].table:
-                        lineage._flowused_in_tables[intbl] = cols
-                        break
+        def is_used_in_edge(tgt: str) -> bool:
+            is_used = False
+            for edge in lineage._edges.values():
+                if tgt == edge["from"].table:
+                    is_used = True
+                    break
+            return is_used
+
+        lineage._ref_tbls = {
+            tbl: cols
+            for tbl, cols in lineage._src_tbls.items()
+            if not is_used_in_edge(tbl)
+        }
+        lineage._src_tbls = {
+            tbl: cols
+            for tbl, cols in lineage._src_tbls.items()
+            if tbl not in lineage._ref_tbls.keys()
+        }
 
         return lineage
 
@@ -46,24 +58,24 @@ class Lineage:
     def create(nodes: list[node.Node]) -> Lineage:
         return Lineage.merge(nodes)
 
-    def draw_process(self) -> None:
-        names = {dir["name"] for dir in self._dirs.values()}
+    def draw_edges(self) -> None:
+        names = {dir["name"] for dir in self._edges.values()}
         for name in names:
             self.__dot.node(name, label=name, shape="note")
 
-        ps = {}
-        for dir in self._dirs.values():
-            ps.setdefault(
-                dir["from"].table + dir["name"],
-                (dir["from"].table, dir["name"]),
+        edges = {}
+        for edge in self._edges.values():
+            edges.setdefault(
+                edge["from"].table + edge["name"],
+                (edge["from"].table, edge["name"]),
             )
-            ps.setdefault(
-                dir["name"] + dir["to"].table,
-                (dir["name"], dir["to"].table),
+            edges.setdefault(
+                edge["name"] + edge["to"].table,
+                (edge["name"], edge["to"].table),
             )
 
-        for p in ps.values():
-            self.__dot.edge(p[0], p[1])
+        for e in edges.values():
+            self.__dot.edge(e[0], e[1])
 
     def draw(self, type: int) -> None:
         self.__dot = gv.Digraph(format="png", filename="pglineage.gv")
@@ -90,11 +102,11 @@ class Lineage:
                     label += sep + "<" + fld + "> " + fld
                 self.__dot.node(tbl, shape="record", label=label, xlabel=xlabel)
 
-        draw_tables(self._flowused_in_tables)
-        draw_tables(self._out_tables)
+        draw_tables(self._src_tbls)
+        draw_tables(self._tgt_tbls)
 
-        for dir in self._dirs.values():
-            f, t, n = dir["from"], dir["to"], dir["name"]
+        for edge in self._edges.values():
+            f, t, n = edge["from"], edge["to"], edge["name"]
             self.__dot.edge(f.table + ":" + f.name, t.table + ":" + t.name, label="")
 
     def draw_2(self) -> None:
@@ -102,9 +114,10 @@ class Lineage:
             for tbl in tables.keys():
                 self.__dot.node(tbl, shape="cylinder", label=self.out_table(tbl))
 
-        draw_tables(self._flowused_in_tables)
-        draw_tables(self._out_tables)
-        self.draw_process()
+        draw_tables(self._src_tbls)
+        draw_tables(self._ref_tbls)
+        draw_tables(self._tgt_tbls)
+        self.draw_edges()
 
     def draw_3(self) -> None:
         pass
