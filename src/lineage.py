@@ -26,6 +26,7 @@ class Lineage:
             for tbl, cols in ins.items():
                 lineage._src_tbls.setdefault(tbl, {})
                 lineage._src_tbls[tbl].update(cols)
+                print(tbl)
 
             tbl = next(iter(out.keys()))
             lineage._tgt_tbls.setdefault(tbl, {})
@@ -37,6 +38,7 @@ class Lineage:
             is_used = False
             for edge in lineage._edges.values():
                 if tgt == edge["from"].table:
+                    print(edge["from"])
                     is_used = True
                     break
             return is_used
@@ -46,6 +48,7 @@ class Lineage:
             for tbl, cols in lineage._src_tbls.items()
             if not is_used_in_edge(tbl)
         }
+        print(lineage._ref_tbls)
         lineage._src_tbls = {
             tbl: cols
             for tbl, cols in lineage._src_tbls.items()
@@ -86,6 +89,8 @@ class Lineage:
             self.draw_1()
         elif type == 2:
             self.draw_2()
+        elif type == 3:
+            self.draw_3()
 
         self.__dot.render("pglineage")
 
@@ -109,15 +114,19 @@ class Lineage:
             f, t, n = edge["from"], edge["to"], edge["name"]
             self.__dot.edge(f.table + ":" + f.name, t.table + ":" + t.name, label="")
 
-    def draw_2(self) -> None:
-        def draw_tables(tables: dict[str, dict[str, None]]) -> None:
-            for tbl in tables.keys():
-                self.__dot.node(tbl, shape="cylinder", label=self.out_table(tbl))
+    def draw_tables(self, tables: dict[str, dict[str, None]]) -> None:
+        for tbl in tables.keys():
+            self.__dot.node(tbl, shape="cylinder", label=self.out_table(tbl))
 
-        draw_tables(self._src_tbls)
-        draw_tables(self._ref_tbls)
-        draw_tables(self._tgt_tbls)
+    def draw_2(self) -> None:
+        self.draw_tables(self._src_tbls)
+        self.draw_tables(self._tgt_tbls)
         self.draw_edges()
 
     def draw_3(self) -> None:
-        pass
+        self.draw_tables(self._src_tbls)
+        self.draw_tables(self._ref_tbls)
+        self.draw_tables(self._tgt_tbls)
+        self.draw_edges()
+        for tgt in self._ref_tbls:
+            print(tgt)
