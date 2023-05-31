@@ -65,14 +65,22 @@ class Select(Node):
             "name": self.name,
         }
 
-    def _trace(self, column: str, results: list[Column]) -> None:
+    def _trace_column(self, column: str, results: list[Column]) -> None:
         for refcol in self.columns[column]:
             if refcol.table not in self.tables.keys():
                 raise Exception()
             if isinstance(self.tables[refcol.table].ref, str):
                 results.append(refcol)
             elif isinstance(self.tables[refcol.table].ref, Select):
-                self.tables[refcol.table].ref._trace(refcol.name, results)
+                self.tables[refcol.table].ref._trace_column(refcol.name, results)
+
+    def _trace_table(self, results: list[str]) -> None:
+        for tbl in self.tables.values():
+            if isinstance(tbl.ref, str):
+                results.append(tbl.ref)
+            elif isinstance(tbl.ref, Select):
+                tbl.ref._trace_table(results)
+        return
 
     def _flatten(self) -> Select:
         f_columns: dict[str, list[Column]] = {}
@@ -84,9 +92,14 @@ class Select(Node):
                 if isinstance(self.tables[refcol.table].ref, str):
                     f_refcols.append(refcol)
                 elif isinstance(self.tables[refcol.table].ref, Select):
-                    self.tables[refcol.table].ref._trace(refcol.name, f_refcols)
+                    self.tables[refcol.table].ref._trace_column(refcol.name, f_refcols)
             f_columns[column] = f_refcols
-        return Select(f_columns, name=self.name)
+
+        refs: list[str] = []
+        self._trace_table(refs)
+        f_tables = {ref: ref for ref in refs}
+
+        return Select(f_columns, f_tables, name=self.name)
 
     def summary(
         self,
@@ -101,7 +114,8 @@ class Select(Node):
         out_table: dict[str, dict[str, None]] = {out_tblnm: {}}
         in_tables: dict[str, dict[str, None]] = {}
         dirs: dict[str, dict[str, Column | str]] = {}
-        for colname, refcols in self._flatten().columns.items():
+        f = self._flatten()
+        for colname, refcols in f.columns.items():
             out_table[out_tblnm].setdefault(colname)
             for refcol in refcols:
                 in_tables.setdefault(refcol.table, {})
@@ -111,6 +125,9 @@ class Select(Node):
                 to = Column(out_tblnm, colname)
                 key = self.name + str(from_) + str(to)
                 dirs.setdefault(key, {"name": self.name, "from": from_, "to": to})
+
+        for ft in f.tables:
+            in_tables.setdefault(ft, {})
 
         return in_tables, out_table, dirs
 

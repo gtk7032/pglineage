@@ -26,7 +26,6 @@ class Lineage:
             for tbl, cols in ins.items():
                 lineage._src_tbls.setdefault(tbl, {})
                 lineage._src_tbls[tbl].update(cols)
-                print(tbl)
 
             tbl = next(iter(out.keys()))
             lineage._tgt_tbls.setdefault(tbl, {})
@@ -38,7 +37,6 @@ class Lineage:
             is_used = False
             for edge in lineage._edges.values():
                 if tgt == edge["from"].table:
-                    print(edge["from"])
                     is_used = True
                     break
             return is_used
@@ -48,13 +46,20 @@ class Lineage:
             for tbl, cols in lineage._src_tbls.items()
             if not is_used_in_edge(tbl)
         }
-        print(lineage._ref_tbls)
         lineage._src_tbls = {
             tbl: cols
             for tbl, cols in lineage._src_tbls.items()
             if tbl not in lineage._ref_tbls.keys()
         }
-
+        for tbl, cols in lineage._ref_tbls.items():
+            for nd in nodes:
+                _, _, dirs = nd.summary()
+                if not len([True for dir in dirs.values() if dir["from"].table == tbl]):
+                    lineage._edges[nd.name + tbl] = {
+                        "name": nd.name,
+                        "from": tbl,
+                        "to": "",
+                    }
         return lineage
 
     @staticmethod
@@ -68,17 +73,30 @@ class Lineage:
 
         edges = {}
         for edge in self._edges.values():
-            edges.setdefault(
-                edge["from"].table + edge["name"],
-                (edge["from"].table, edge["name"]),
+            if isinstance(edge["from"], str):
+                edges.setdefault(
+                    edge["from"] + edge["name"],
+                    (edge["from"], edge["name"],True),
             )
+            else:
+                edges.setdefault(
+                    edge["from"].table + edge["name"],
+                    (edge["from"].table, edge["name"],False)
+            ),
+            
+            if not edge["to"]:
+                continue
+
+            if isinsta
+            t = edge["to"] if isinstance(edge["to"], str) else edge["to"].table
             edges.setdefault(
-                edge["name"] + edge["to"].table,
-                (edge["name"], edge["to"].table),
+                edge["name"] + t,
+                (edge["name"], t),
             )
 
         for e in edges.values():
             self.__dot.edge(e[0], e[1])
+            print(e[0], e[1])
 
     def draw(self, type: int) -> None:
         self.__dot = gv.Digraph(format="png", filename="pglineage.gv")
@@ -128,5 +146,3 @@ class Lineage:
         self.draw_tables(self._ref_tbls)
         self.draw_tables(self._tgt_tbls)
         self.draw_edges()
-        for tgt in self._ref_tbls:
-            print(tgt)
