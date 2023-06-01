@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Tuple
+
 import graphviz as gv
 
 import node
@@ -13,29 +15,33 @@ class Lineage:
         self._src_tbls: dict[str, dict[str, None]] = {}
         self._tgt_tbls: dict[str, dict[str, None]] = {}
         self._ref_tbls: dict[str, None] = {}
-        self._edges: dict[str, dict[str, Column | str]] = {}
-        self._ref_edges: dict[str, dict[str, str]] = {}
+        self._col_edges: dict[str, Tuple[Column, Column]] = {}
+        self._tbl_edges: dict[str, Tuple[str, str]] = {}
+        self._ref_edges: dict[str, Tuple[str, str]] = {}
         self.__dot: gv.Digraph = None
+        self.__nodes: set[str] = set()
 
     @staticmethod
     def merge(nodes: list[node.Node]) -> Lineage:
         lineage = Lineage()
 
         for nd in nodes:
-            srctbls, tgttbls, reftbls, edges, ref_edges = nd.summary()
+            lineage.__nodes.add(nd.name)
+            srctbls, tgttbls, reftbls, col_edges, tbl_edges, ref_edges = nd.summary()
 
             for tbl, cols in srctbls.items():
                 lineage._src_tbls.setdefault(tbl, {})
                 lineage._src_tbls[tbl].update(cols)
 
-            for tbl in reftbls.keys():
-                lineage._ref_tbls.setdefault(tbl, {})
-
             tbl = next(iter(tgttbls.keys()))
             lineage._tgt_tbls.setdefault(tbl, {})
             lineage._tgt_tbls[tbl].update(tgttbls[tbl])
 
-            lineage._edges.update(edges)
+            for tbl in reftbls.keys():
+                lineage._ref_tbls.setdefault(tbl, None)
+
+            lineage._col_edges.update(col_edges)
+            lineage._tbl_edges.update(tbl_edges)
             lineage._ref_edges.update(ref_edges)
 
         return lineage
@@ -79,31 +85,22 @@ class Lineage:
             self.__dot.node(rt, shape="cylinder", label=self.out_table(rt))
 
     def draw_edges_1(self) -> None:
-        for edge in self._edges.values():
-            f, t = edge["from"], edge["to"]
-            self.__dot.edge(f.table + ":" + f.name, t.table + ":" + t.name, label="")
+        def func(arg) -> str:
+            return arg if isinstance(arg, str) else arg.table + ":" + arg.name
+
+        for edge in self._col_edges.values():
+            self.__dot.edge(func(edge[0]), func(edge[1]), label="")
 
     def draw_edges_2_3(self) -> None:
-        names = {dir["name"] for dir in self._edges.values()}
-        for name in names:
+        for name in self.__nodes:
             self.__dot.node(name, label=name, shape="note")
 
-        edges = {}
-        for edge in self._edges.values():
-            edges.setdefault(
-                edge["from"].table + edge["name"],
-                (edge["from"].table, edge["name"]),
-            )
-            edges.setdefault(
-                edge["name"] + edge["to"].table, (edge["name"], edge["to"].table)
-            ),
-
-        for e in edges.values():
+        for e in self._tbl_edges.values():
             self.__dot.edge(e[0], e[1])
 
     def draw_refedges(self) -> None:
         for re in self._ref_edges.values():
-            self.__dot.edge(re["from"], re["to"], style="dashed")
+            self.__dot.edge(re[0], re[1], style="dashed")
 
     def draw_1(self) -> None:
         self.draw_tables_1(self._src_tbls)
