@@ -22,6 +22,7 @@ class Node(metaclass=abc.ABCMeta):
     ) -> Tuple[
         dict[str, dict[str, None]],
         dict[str, dict[str, None]],
+        dict[str, dict[None, None]],
         dict[str, dict[str, Column | str]],
     ]:
         raise NotImplementedError()
@@ -106,30 +107,40 @@ class Select(Node):
     ) -> Tuple[
         dict[str, dict[str, None]],
         dict[str, dict[str, None]],
+        dict[str, None],
         dict[str, dict[str, Column | str]],
+        dict[str, dict[str, str]],
     ]:
         out_tblnm = Select.STATEMENT + "-" + str(Select.__COUNT)
         Select.__COUNT += 1
 
-        out_table: dict[str, dict[str, None]] = {out_tblnm: {}}
-        in_tables: dict[str, dict[str, None]] = {}
-        dirs: dict[str, dict[str, Column | str]] = {}
+        tgt_tbl: dict[str, dict[str, None]] = {out_tblnm: {}}
+        src_tbls: dict[str, dict[str, None]] = {}
+        ref_tbls: dict[str, None] = {}
+        flw_edges: dict[str, dict[str, Column | str]] = {}
+        ref_edges: dict[str, dict[str, str]] = {}
+
         f = self._flatten()
         for colname, refcols in f.columns.items():
-            out_table[out_tblnm].setdefault(colname)
+            tgt_tbl[out_tblnm].setdefault(colname)
             for refcol in refcols:
-                in_tables.setdefault(refcol.table, {})
-                in_tables[refcol.table].setdefault(refcol.name)
+                src_tbls.setdefault(refcol.table, {})
+                src_tbls[refcol.table].setdefault(refcol.name)
 
                 from_ = refcol
                 to = Column(out_tblnm, colname)
                 key = self.name + str(from_) + str(to)
-                dirs.setdefault(key, {"name": self.name, "from": from_, "to": to})
+                flw_edges.setdefault(key, {"name": self.name, "from": from_, "to": to})
 
         for ft in f.tables:
-            in_tables.setdefault(ft, {})
+            if ft not in src_tbls.keys():
+                ref_tbls.setdefault(ft, None)
 
-        return in_tables, out_table, dirs
+        for rt in ref_tbls.keys():
+            key = rt + self.name
+            ref_edges.setdefault(key, {"name": self.name, "from": rt, "to": self.name})
+
+        return src_tbls, tgt_tbl, ref_tbls, flw_edges, ref_edges
 
 
 class Insert(Node):
