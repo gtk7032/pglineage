@@ -85,16 +85,18 @@ class Lineage:
             self.__dot.node(rt, shape="cylinder", label=self.out_table(rt))
 
     def draw_edges_1(self) -> None:
-        def func(arg) -> str:
-            return arg if isinstance(arg, str) else arg.table + ":" + arg.name
-
         for edge in self._col_edges.values():
-            self.__dot.edge(func(edge[0]), func(edge[1]), label="")
+            self.__dot.edge(
+                edge[0].table + ":" + edge[0].name,
+                edge[1].table + ":" + edge[1].name,
+                label="",
+            )
 
-    def draw_edges_2_3(self) -> None:
+    def draw_nodes(self) -> None:
         for name in self.__nodes:
             self.__dot.node(name, label=name, shape="note")
 
+    def draw_edges_2_3(self) -> None:
         for e in self._tbl_edges.values():
             self.__dot.edge(e[0], e[1])
 
@@ -110,11 +112,13 @@ class Lineage:
     def draw_2(self) -> None:
         self.draw_tables_2_3(self._src_tbls)
         self.draw_tables_2_3(self._tgt_tbls)
+        self.draw_nodes()
         self.draw_edges_2_3()
 
     def draw_3(self) -> None:
         self.draw_tables_2_3(self._src_tbls)
         self.draw_tables_2_3(self._tgt_tbls)
+        self.draw_nodes()
         self.draw_edges_2_3()
         self.draw_reftables()
         self.draw_refedges()
