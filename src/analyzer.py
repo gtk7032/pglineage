@@ -25,19 +25,23 @@ class Analyzer:
                     break
                 if stmt2[0].startswith(stmt1[0]):
                     cnt += 1
-            tmp.append((stmt1[0] + "-" + str(cnt + 1), stmt1[1]))
+            if cnt:
+                tmp.append((stmt1[0] + "-" + str(cnt + 1), stmt1[1]))
+            else:
+                tmp.append((stmt1[0], stmt1[1]))
         self.__rawstmts = tmp
 
     def analyze(self) -> list[node.Node]:
         self.assign_index()
         nodes: list[node.Node] = []
         for name, rawstmt in self.__rawstmts:
-            if isinstance(rawstmt, ast.SelectStmt):
-                nodes.append(self._analyze_select(rawstmt(skip_none=True), name=name))
-            elif isinstance(rawstmt, ast.InsertStmt):
-                nodes.append(
-                    self._analyze_insert(name, rawstmt(skip_none=True), name=name)
-                )
+            match rawstmt:
+                case ast.SelectStmt():
+                    analyze_stmt = self._analyze_select
+                case ast.InsertStmt():
+                    analyze_stmt = self._analyze_insert
+
+            nodes.append(analyze_stmt(rawstmt(skip_none=True), name=name))
         return nodes
 
     def _analyze_fromclause(
