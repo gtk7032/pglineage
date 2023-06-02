@@ -137,15 +137,17 @@ class Analyzer:
 
         return node.Select(columns, tables, layer, name)
 
-    def _analyze_insert(self, name: str, stmt: dict[str, Any]) -> node.Insert:
-        res = self._analyze_restargets(stmt["cols"])
+    def _analyze_insert(self, stmt: dict[str, Any], name: str) -> node.Insert:
+        tgtcols = self._analyze_restargets(stmt["cols"])
         rel = stmt["relation"]
-        tbl = Table(
-            rel["alias"]["aliasname"] if "alias" in rel.keys() else "", rel["relname"]
-        )
-        select = (
+        tgttbl = {
+            rel["alias"]["aliasname"]
+            if "alias" in rel.keys()
+            else rel["relname"]: Table(rel["relname"])
+        }
+        subquery = (
             self._analyze_select(stmt["selectStmt"], 1)
             if "selectStmt" in stmt.keys()
-            else node.Select.empty()
+            else None
         )
-        return node.Insert(name, res, tbl, select)
+        return node.Insert(tgtcols, tgttbl, subquery, 0, name)

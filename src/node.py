@@ -52,10 +52,6 @@ class Select(Node):
         self.layer = layer
         self.name = name
 
-    @staticmethod
-    def empty() -> Select:
-        return Select({}, {}, -1, "")
-
     def format(self) -> dict[str, Any]:
         return {
             "statement": Select.STATEMENT,
@@ -155,26 +151,87 @@ class Insert(Node):
 
     def __init__(
         self,
-        tgtcols: list[ResTarget],
-        tgttbl: "table.Table",
+        tgtcols: dict[str, list[Column]],
+        tgttable: dict[str, table.Table],
         subquery: Select,
+        layer: int = 0,
+        name: str = "",
     ) -> None:
-        self.layer = 0
         self.tgtcols = tgtcols
-        self.tgttable = tgttbl
+        self.tgttable = tgttable
         self.subquery = subquery
+        self.layer = layer
+        self.name = name
 
     def format(self) -> dict[str, Any]:
         return {
             "statement": Insert.STATEMENT,
             "layer": self.layer,
-            "tgtcols": [col.format() for col in self.tgtcols],
-            "tgttbl": self.tgttable.format(),
-            "subquery": self.subquery.format(),
+            "tgtcols": {
+                colnm: [str(rc) for rc in refcols]
+                for colnm, refcols in self.tgtcols.items()
+            },
+            "tgttable": next(iter(self.tgttable)),
+            "subquery": self.subquery.format() if self.subquery else "",
+            "name": self.name,
         }
 
-    def _flatten(self) -> dict[str, Any]:
-        dst_table: str
-        dst_cols: dict[str, list[Column]]
-        refs: list[Column]
-        return {"dst_table": dst_table, "dst_cols": dst_cols, "reds": refs}
+    def _flatten(self) -> Insert:
+        if not self.subquery:
+            return self
+
+        subquery = self.subquery._flatten()
+
+        f_tgtcols: dict[str, list[Column]] = {}
+        for column, refcols in self.tgtcols.items():
+            f_refcols: list[Column] = []
+            for refcol in refcols:
+                if refcol.table not in subquery.tables.keys():
+                    raise Exception()
+                f_refcols = subquery.tables[refcol.table].ref.columns[refcol.name]
+            f_tgtcols[column] = f_refcols
+
+        return Insert(f_tgtcols, self.tgttable, subquery, 0, self.name)
+
+    def summary(
+        self,
+    ) -> Tuple[
+        dict[str, dict[str, None]],
+        dict[str, dict[str, None]],
+        set[str],
+        dict[str, Tuple[Column, Column]],
+        dict[str, Tuple[str, str]],
+        dict[str, Tuple[str, str]],
+    ]:
+        tgttbl_name = next(iter(self.tgttable.values())).ref
+        tgt_tbl: dict[str, dict[str, None]] = {tgttbl_name: {}}
+        src_tbls: dict[str, dict[str, None]] = {}
+        ref_tbls: set[str] = set()
+        col_flows: dict[str, Tuple[Column, Column]] = {}
+        tbl_flows: dict[str, Tuple[str, str]] = {}
+        ref_edges: dict[str, Tuple[str, str]] = {}
+
+        f = self._flatten()
+        for colname, refcols in f.tgtcols.items():
+            tgt_tbl[tgttbl_name].setdefault(colname)
+            for refcol in refcols:
+                src_tbls.setdefault(refcol.table, {})
+                src_tbls[refcol.table].setdefault(refcol.name)
+
+                from_ = refcol
+                to = Column(tgttbl_name, colname)
+                col_flows.setdefault(str(from_) + str(to), (from_, to))
+                tbl_flows.setdefault(
+                    str(from_.table) + self.name, (from_.table, self.name)
+                )
+                tbl_flows.setdefault(self.name + str(to.table), (self.name, to.table))
+
+        for ft in f.subquery.tables:
+            if ft not in src_tbls.keys():
+                ref_tbls.add(ft)
+
+        for rt in ref_tbls:
+            key = rt + self.name
+            ref_edges.setdefault(key, (rt, self.name))
+
+        return src_tbls, tgt_tbl, ref_tbls, col_flows, tbl_flows, ref_edges

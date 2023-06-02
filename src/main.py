@@ -3,14 +3,21 @@ from __future__ import annotations
 import argparse
 from pprint import pprint
 
+from pglast import parse_sql
+
 from analyzer import Analyzer
 from lineage import Lineage
 
 # sql = "select a, b, c from tbl;"
-# sql = (
-#     "insert into to_table as totbl (to_col1, to_col2) "
-#     "select 5 * from_col1, from_col2 from from_table;"
-# )
+sql = (
+    "insert into to_table as totbl (to_col1, to_col2) "
+    "select 5, from_col1, from_col2 from from_table;"
+)
+
+# root = parse_sql(sql)
+# stmt = root[0].stmt
+# pprint(stmt(skip_none=True))
+# exit()
 # sql = "insert into to_table (to_col1, to_col2)"
 # sql = "select 5 * from_table1.from_col1, from_table2.from_col4 from from_table inner join from_table2 on from_table.from_col3 = from_table2.from_col4;"
 
@@ -23,7 +30,7 @@ from lineage import Lineage
 
 # sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
 
-sql = "SELECT tbl1.res AS res2, tbl2.res, tbl3.res FROM tbl1 INNER JOIN tbl2 ON tbl1.col = tbl2.col, tbl3, tbl4 WHERE tbl1.col2 = TBL4.col2;"
+# sql = "SELECT tbl1.res AS res2, tbl2.res, tbl3.res FROM tbl1 INNER JOIN tbl2 ON tbl1.col = tbl2.col, tbl3, tbl4 WHERE tbl1.col2 = TBL4.col2;"
 # sql += "SELECT b FROM tbl4;"
 
 # sql = (
