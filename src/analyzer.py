@@ -12,9 +12,24 @@ class Analyzer:
         self.__rawstmts: list[Tuple[str, Any]] = []
 
     def load(self, sqls: str, name: str) -> None:
-        self.__rawstmts.extend((name, sql.stmt) for sql in parse_sql(sqls))
+        self.__rawstmts.extend(
+            (name.lower(), sql.stmt) for sql in parse_sql(sqls.lower())
+        )
+
+    def assign_index(self) -> None:
+        tmp = []
+        for stmt1 in self.__rawstmts:
+            cnt = 0
+            for stmt2 in self.__rawstmts:
+                if stmt1 == stmt2:
+                    break
+                if stmt2[0].startswith(stmt1[0]):
+                    cnt += 1
+            tmp.append((stmt1[0] + "-" + str(cnt + 1), stmt1[1]))
+        self.__rawstmts = tmp
 
     def analyze(self) -> list[node.Node]:
+        self.assign_index()
         nodes: list[node.Node] = []
         for name, rawstmt in self.__rawstmts:
             if isinstance(rawstmt, ast.SelectStmt):
@@ -69,8 +84,8 @@ class Analyzer:
             name = tgt.get(
                 "name", refcols[0].name if len(refcols) == 1 else "column-" + str(i + 1)
             )
-            cnt = len([True for nm in results.keys() if nm == name])
-            name += "(" + str(cnt + 1) + ")" if cnt else ""
+            ls = [nm for nm in results.keys() if nm == name]
+            name += "(" + str(len(ls) + 1) + ")" if len(ls) else ""
             results[name] = refcols
 
         return results

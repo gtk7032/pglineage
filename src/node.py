@@ -22,7 +22,7 @@ class Node(metaclass=abc.ABCMeta):
     ) -> Tuple[
         dict[str, dict[str, None]],
         dict[str, dict[str, None]],
-        dict[str, None],
+        set[str],
         dict[str, Tuple[Column, Column]],
         dict[str, Tuple[str, str]],
         dict[str, Tuple[str, str]],
@@ -109,7 +109,7 @@ class Select(Node):
     ) -> Tuple[
         dict[str, dict[str, None]],
         dict[str, dict[str, None]],
-        dict[str, None],
+        set[str],
         dict[str, Tuple[Column, Column]],
         dict[str, Tuple[str, str]],
         dict[str, Tuple[str, str]],
@@ -119,7 +119,7 @@ class Select(Node):
 
         tgt_tbl: dict[str, dict[str, None]] = {out_tblnm: {}}
         src_tbls: dict[str, dict[str, None]] = {}
-        ref_tbls: dict[str, None] = {}
+        ref_tbls: set[str] = set()
         col_flows: dict[str, Tuple[Column, Column]] = {}
         tbl_flows: dict[str, Tuple[str, str]] = {}
         ref_edges: dict[str, Tuple[str, str]] = {}
@@ -134,14 +134,16 @@ class Select(Node):
                 from_ = refcol
                 to = Column(out_tblnm, colname)
                 col_flows.setdefault(str(from_) + str(to), (from_, to))
-                tbl_flows.setdefault(str(from_) + self.name, (from_.table, self.name))
-                tbl_flows.setdefault(self.name + str(to), (self.name, to.table))
+                tbl_flows.setdefault(
+                    str(from_.table) + self.name, (from_.table, self.name)
+                )
+                tbl_flows.setdefault(self.name + str(to.table), (self.name, to.table))
 
         for ft in f.tables:
             if ft not in src_tbls.keys():
-                ref_tbls.setdefault(ft, None)
+                ref_tbls.add(ft)
 
-        for rt in ref_tbls.keys():
+        for rt in ref_tbls:
             key = rt + self.name
             ref_edges.setdefault(key, (rt, self.name))
 
