@@ -43,13 +43,7 @@ class Lineage:
 
             lineage._col_edges.update(col_edges)
             lineage._tbl_edges.update(tbl_edges)
-            lineage._ref_edges.update(
-                {
-                    key: edge
-                    for key, edge in ref_edges.items()
-                    if key not in tbl_edges.keys()
-                }
-            )
+            lineage._ref_edges.update(ref_edges)
 
         return lineage
 
