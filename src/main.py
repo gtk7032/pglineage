@@ -11,7 +11,7 @@ from lineage import Lineage
 # sql = "select a, b, c from tbl;"
 sql = (
     "insert into to_table as totbl (to_col1, to_col2) "
-    "select 5, from_col1, from_col2 from from_table;"
+    "select from_table.from_col1, from_table.from_col2 from from_table, ref_table where from_table.col1 = ref_table.col1;"
 )
 
 # root = parse_sql(sql)

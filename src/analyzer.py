@@ -16,7 +16,7 @@ class Analyzer:
             (name.lower(), sql.stmt) for sql in parse_sql(sqls.lower())
         )
 
-    def assign_index(self) -> None:
+    def index(self) -> None:
         tmp = []
         for stmt1 in self.__rawstmts:
             cnt = 0
@@ -32,7 +32,7 @@ class Analyzer:
         self.__rawstmts = tmp
 
     def analyze(self) -> list[node.Node]:
-        self.assign_index()
+        self.index()
         nodes: list[node.Node] = []
         for name, rawstmt in self.__rawstmts:
             match rawstmt:
@@ -88,7 +88,7 @@ class Analyzer:
             name = tgt.get(
                 "name", refcols[0].name if len(refcols) == 1 else "column-" + str(i + 1)
             )
-            ls = [nm for nm in results.keys() if nm == name]
+            ls = [nm for nm in results.keys() if nm.startswith(name)]
             name += "(" + str(len(ls) + 1) + ")" if len(ls) else ""
             results[name] = refcols
 

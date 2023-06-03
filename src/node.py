@@ -212,19 +212,19 @@ class Insert(Node):
         ref_edges: dict[str, Tuple[str, str]] = {}
 
         f = self._flatten()
-        for colname, refcols in f.tgtcols.items():
-            tgt_tbl[tgttbl_name].setdefault(colname)
-            for refcol in refcols:
+        for tgtcol, srccol in zip(f.tgtcols, f.subquery.columns):
+            tgt_tbl[tgttbl_name].setdefault(tgtcol, None)
+
+            for refcol in f.subquery.columns[srccol]:
+                from_ = refcol
+                to = Column(tgttbl_name, tgtcol)
+
                 src_tbls.setdefault(refcol.table, {})
                 src_tbls[refcol.table].setdefault(refcol.name)
 
-                from_ = refcol
-                to = Column(tgttbl_name, colname)
                 col_flows.setdefault(str(from_) + str(to), (from_, to))
-                tbl_flows.setdefault(
-                    str(from_.table) + self.name, (from_.table, self.name)
-                )
-                tbl_flows.setdefault(self.name + str(to.table), (self.name, to.table))
+                tbl_flows.setdefault(str(from_.table) + f.name, (from_.table, f.name))
+                tbl_flows.setdefault(f.name + str(to.table), (f.name, to.table))
 
         for ft in f.subquery.tables:
             if ft not in src_tbls.keys():
