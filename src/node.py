@@ -42,13 +42,7 @@ class Select(Node):
         name: str = "",
     ) -> None:
         self.columns = columns
-        if tables:
-            self.tables = tables
-        else:
-            set_tables = {
-                refcol.table for refcols in columns.values() for refcol in refcols
-            }
-            self.tables = {st: table.Table(st) for st in set_tables}
+        self.tables = tables
         self.layer = layer
         self.name = name
 
