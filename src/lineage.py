@@ -28,22 +28,22 @@ class Lineage:
         for nd in nodes:
             lineage.__nodes.append(nd.name)
 
-            srctbls, tgttbls, reftbls, col_edges, tbl_edges, ref_edges = nd.summary()
+            summary = nd.summary()
 
-            for tbl, cols in srctbls.items():
+            for tbl, cols in summary.src_tbls.items():
                 lineage._src_tbls.setdefault(tbl, {})
                 lineage._src_tbls[tbl].update(cols)
 
-            tbl = next(iter(tgttbls.keys()))
+            tbl = next(iter(summary.tgt_tbl.keys()))
             lineage._tgt_tbls.setdefault(tbl, {})
-            lineage._tgt_tbls[tbl].update(tgttbls[tbl])
+            lineage._tgt_tbls[tbl].update(summary.tgt_tbl[tbl])
 
-            for tbl in reftbls:
+            for tbl in summary.ref_tbls:
                 lineage._ref_tbls.add(tbl)
 
-            lineage._col_edges.update(col_edges)
-            lineage._tbl_edges.update(tbl_edges)
-            lineage._ref_edges.update(ref_edges)
+            lineage._col_edges.update(summary.col_edges)
+            lineage._tbl_edges.update(summary.tbl_edges)
+            lineage._ref_edges.update(summary.ref_edges)
 
         return lineage
 

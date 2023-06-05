@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Tuple
+from typing import Any, NamedTuple, Tuple
 
 import table
 from column import Column
+
+
+class Summary(NamedTuple):
+    src_tbls: dict[str, dict[str, None]]
+    tgt_tbl: dict[str, dict[str, None]]
+    ref_tbls: set[str]
+    col_edges: dict[str, Tuple[Column, Column]]
+    tbl_edges: dict[str, Tuple[str, str]]
+    ref_edges: dict[str, Tuple[str, str]]
 
 
 class Node(metaclass=abc.ABCMeta):
@@ -19,14 +28,7 @@ class Node(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def summary(
         self,
-    ) -> Tuple[
-        dict[str, dict[str, None]],
-        dict[str, dict[str, None]],
-        set[str],
-        dict[str, Tuple[Column, Column]],
-        dict[str, Tuple[str, str]],
-        dict[str, Tuple[str, str]],
-    ]:
+    ) -> Summary:
         raise NotImplementedError()
 
 
@@ -96,22 +98,15 @@ class Select(Node):
 
     def summary(
         self,
-    ) -> Tuple[
-        dict[str, dict[str, None]],
-        dict[str, dict[str, None]],
-        set[str],
-        dict[str, Tuple[Column, Column]],
-        dict[str, Tuple[str, str]],
-        dict[str, Tuple[str, str]],
-    ]:
+    ) -> Summary:
         out_tblnm = Select.STATEMENT + "-" + str(Select.__COUNT)
         Select.__COUNT += 1
 
         tgt_tbl: dict[str, dict[str, None]] = {out_tblnm: {}}
         src_tbls: dict[str, dict[str, None]] = {}
         ref_tbls: set[str] = set()
-        col_flows: dict[str, Tuple[Column, Column]] = {}
-        tbl_flows: dict[str, Tuple[str, str]] = {}
+        col_edges: dict[str, Tuple[Column, Column]] = {}
+        tbl_edges: dict[str, Tuple[str, str]] = {}
         ref_edges: dict[str, Tuple[str, str]] = {}
 
         f = self._flatten()
@@ -123,11 +118,11 @@ class Select(Node):
 
                 from_ = refcol
                 to = Column(out_tblnm, colname)
-                col_flows.setdefault(str(from_) + str(to), (from_, to))
-                tbl_flows.setdefault(
+                col_edges.setdefault(str(from_) + str(to), (from_, to))
+                tbl_edges.setdefault(
                     str(from_.table) + self.name, (from_.table, self.name)
                 )
-                tbl_flows.setdefault(self.name + str(to.table), (self.name, to.table))
+                tbl_edges.setdefault(self.name + str(to.table), (self.name, to.table))
 
         for ft in f.tables:
             if ft not in src_tbls.keys():
@@ -137,7 +132,7 @@ class Select(Node):
             key = rt + self.name
             ref_edges.setdefault(key, (rt, self.name))
 
-        return src_tbls, tgt_tbl, ref_tbls, col_flows, tbl_flows, ref_edges
+        return Summary(src_tbls, tgt_tbl, ref_tbls, col_edges, tbl_edges, ref_edges)
 
 
 class Insert(Node):
@@ -189,20 +184,13 @@ class Insert(Node):
 
     def summary(
         self,
-    ) -> Tuple[
-        dict[str, dict[str, None]],
-        dict[str, dict[str, None]],
-        set[str],
-        dict[str, Tuple[Column, Column]],
-        dict[str, Tuple[str, str]],
-        dict[str, Tuple[str, str]],
-    ]:
+    ) -> Summary:
         tgttbl_name = next(iter(self.tgttable.values())).ref
         tgt_tbl: dict[str, dict[str, None]] = {tgttbl_name: {}}
         src_tbls: dict[str, dict[str, None]] = {}
         ref_tbls: set[str] = set()
-        col_flows: dict[str, Tuple[Column, Column]] = {}
-        tbl_flows: dict[str, Tuple[str, str]] = {}
+        col_edges: dict[str, Tuple[Column, Column]] = {}
+        tbl_edges: dict[str, Tuple[str, str]] = {}
         ref_edges: dict[str, Tuple[str, str]] = {}
 
         f = self._flatten()
@@ -216,9 +204,9 @@ class Insert(Node):
                 src_tbls.setdefault(refcol.table, {})
                 src_tbls[refcol.table].setdefault(refcol.name)
 
-                col_flows.setdefault(str(from_) + str(to), (from_, to))
-                tbl_flows.setdefault(str(from_.table) + f.name, (from_.table, f.name))
-                tbl_flows.setdefault(f.name + str(to.table), (f.name, to.table))
+                col_edges.setdefault(str(from_) + str(to), (from_, to))
+                tbl_edges.setdefault(str(from_.table) + f.name, (from_.table, f.name))
+                tbl_edges.setdefault(f.name + str(to.table), (f.name, to.table))
 
         for ft in f.subquery.tables:
             if ft not in src_tbls.keys():
@@ -228,4 +216,11 @@ class Insert(Node):
             key = rt + self.name
             ref_edges.setdefault(key, (rt, self.name))
 
-        return src_tbls, tgt_tbl, ref_tbls, col_flows, tbl_flows, ref_edges
+        return Summary(
+            src_tbls=src_tbls,
+            tgt_tbl=tgt_tbl,
+            ref_tbls=ref_tbls,
+            col_edges=col_edges,
+            tbl_edges=tbl_edges,
+            ref_edges=ref_edges,
+        )
