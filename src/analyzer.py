@@ -40,7 +40,8 @@ class Analyzer:
                     analyze_stmt = self._analyze_select
                 case ast.InsertStmt():
                     analyze_stmt = self._analyze_insert
-
+                case ast.UpdateStmt():
+                    analyze_stmt = self._analyze_update
             nodes.append(analyze_stmt(rawstmt(skip_none=True), name=name))
         return nodes
 
@@ -107,6 +108,11 @@ class Analyzer:
                 refcols.append(Column.create_from_list(refcol))
             return
 
+        if tgt.get("@", "") == "SelectStmt":
+            subquery = self._analyze_select(tgt["SelectStmt"])
+            refcols = next(iter(subquery._flatten().columns.values()))
+            return
+
         for v in tgt.values():
             if isinstance(v, tuple):
                 for vv in v:
@@ -151,3 +157,18 @@ class Analyzer:
             else None
         )
         return node.Insert(tgtcols, tgttbl, subquery, 0, name)
+
+    def _analyze_update(self, stmt: dict[str, Any], name: str) -> node.Update:
+        tgtcols = self._analyze_restargets(stmt["targetList"])
+        tables: dict[str, Table] = {}
+        rel = stmt["relation"]
+        tgttbl = {
+            rel["alias"]["aliasname"]
+            if "alias" in rel.keys()
+            else rel["relname"]: Table(rel["relname"])
+        }
+        if "fromClause" in stmt.keys():
+            for fc in stmt["fromClause"]:
+                self._analyze_fromclause(fc, tables, 0, name)
+
+        return node.Update(tgtcols, tgttbl, tables, 0, name)

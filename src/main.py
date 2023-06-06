@@ -14,13 +14,25 @@ from lineage import Lineage
 #     "select from_table.from_col1, from_table.from_col2 from from_table, ref_table where from_table.col1 = ref_table.col1;"
 # )
 
-sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
+# sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
+sql = (
+    "UPDATE "
+    + "XXX a "
+    + " SET "
+    + " a.attr_name = ( "
+    + "    SELECT "
+    + "    B.attr_name "
+    + "    FROM "
+    + "    attribute B "
+    + "    WHERE "
+    + "    A.attr_id = B.attr_id "
+    + " );"
+)
 
-
-# root = parse_sql(sql)
-# stmt = root[0].stmt
-# pprint(stmt(skip_none=True))
-# exit()
+root = parse_sql(sql)
+stmt = root[0].stmt
+pprint(stmt(skip_none=True))
+exit()
 # sql = "insert into to_table (to_col1, to_col2)"
 # sql = "select 5 * from_table1.from_col1, from_table2.from_col4 from from_table inner join from_table2 on from_table.from_col3 = from_table2.from_col4;"
 
