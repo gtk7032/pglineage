@@ -82,6 +82,7 @@ class Select(Node):
         for column, refcols in self.columns.items():
             f_refcols: list[Column] = []
             for refcol in refcols:
+                print(refcol.table)
                 if refcol.table not in self.tables.keys():
                     raise Exception()
                 if isinstance(self.tables[refcol.table].ref, str):

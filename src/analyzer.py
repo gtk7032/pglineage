@@ -146,6 +146,16 @@ class Analyzer:
             for fc in statement["fromClause"]:
                 self._analyze_fromclause(fc, tables, layer, name)
 
+        if "whereClause" in statement.keys():
+            if "subselect" in statement["whereClause"].keys():
+                tables.update(
+                    self._analyze_select(
+                        statement["whereClause"]["subselect"], layer + 1, name
+                    )
+                    ._flatten()
+                    .tables
+                )
+
         if len(tables.keys()) == 1:
             for refcols in columns.values():
                 for rc in refcols:

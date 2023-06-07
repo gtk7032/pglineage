@@ -15,18 +15,28 @@ from lineage import Lineage
 # )
 
 # sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
+# sql = (
+#     "UPDATE "
+#     + "XXX a "
+#     + " SET "
+#     + " attr_name = ( "
+#     + "    SELECT "
+#     + "    B.attr_name "
+#     + "    FROM "
+#     + "    attribute B, ref "
+#     + "    WHERE "
+#     + "    A.attr_id = B.attr_id AND a.attr_id = ref.refid "
+#     + " );"
+# )
+
 sql = (
-    "UPDATE "
-    + "XXX a "
-    + " SET "
-    + " attr_name = ( "
-    + "    SELECT "
-    + "    B.attr_name "
-    + "    FROM "
-    + "    attribute B, ref "
-    + "    WHERE "
-    + "    A.attr_id = B.attr_id AND a.attr_id = ref.refid "
-    + " );"
+    "SELECT id,  unitid "
+    "FROM t1 "
+    "WHERE id IN "
+    "("
+    "    SELECT id"
+    "    FROM t2"
+    ");"
 )
 
 # root = parse_sql(sql)
