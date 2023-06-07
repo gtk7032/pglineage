@@ -1,5 +1,6 @@
 from typing import Any, Tuple
 
+import tqdm
 from pglast import ast, parse_sql
 
 import node
@@ -34,7 +35,7 @@ class Analyzer:
     def analyze(self) -> list[node.Node]:
         self.index()
         nodes: list[node.Node] = []
-        for name, rawstmt in self.__rawstmts:
+        for name, rawstmt in tqdm.tqdm(self.__rawstmts):
             match rawstmt:
                 case ast.SelectStmt():
                     analyze_stmt = self._analyze_select
