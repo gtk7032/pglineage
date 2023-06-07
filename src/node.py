@@ -65,7 +65,7 @@ class Select(Node):
             if refcol.table not in self.tables.keys():
                 raise Exception()
             if isinstance(self.tables[refcol.table].ref, str):
-                results.append(refcol)
+                results.append(Column(self.tables[refcol.table].ref, refcol.name))
             elif isinstance(self.tables[refcol.table].ref, Select):
                 self.tables[refcol.table].ref._trace_column(refcol.name, results)
 
@@ -85,7 +85,7 @@ class Select(Node):
                 if refcol.table not in self.tables.keys():
                     raise Exception()
                 if isinstance(self.tables[refcol.table].ref, str):
-                    f_refcols.append(refcol)
+                    f_refcols.append(Column(self.tables[refcol.table].ref, refcol.name))
                 elif isinstance(self.tables[refcol.table].ref, Select):
                     self.tables[refcol.table].ref._trace_column(refcol.name, f_refcols)
             f_columns[column] = f_refcols
@@ -142,7 +142,7 @@ class Insert(Node):
         self,
         tgtcols: dict[str, list[Column]],
         tgttable: dict[str, table.Table],
-        subquery: Select,
+        subquery: Select | None,
         layer: int = 0,
         name: str = "",
     ) -> None:
@@ -275,20 +275,30 @@ class Update(Node):
 
     def _flatten(self) -> Update:
         f_tgtcols: dict[str, list[Column]] = {}
-        for column, refcols in self.tgtcols.items():
-            f_refcols: list[Column] = []
-            for refcol in refcols:
-                if refcol.table not in self.tables.keys():
-                    raise Exception()
-                if isinstance(self.tables[refcol.table].ref, str):
-                    f_refcols.append(refcol)
-                elif isinstance(self.tables[refcol.table].ref, Select):
-                    self.tables[refcol.table].ref._trace_column(refcol.name, f_refcols)
-            f_tgtcols[column] = f_refcols
+        f_tables: dict[str, table.Table] = {}
 
-            refs: list[str] = []
-            self._trace_table(refs)
-            f_tables = {ref: table.Table(ref) for ref in refs}
+        for column, refcols in self.tgtcols.items():
+            if isinstance(refcols, Select):
+                f = refcols._flatten()
+                f_tgtcols[column] = next(iter(f.columns.values()))
+                f_tables.update(f.tables)
+
+            elif isinstance(refcols, list):
+                f_refcols: list[Column] = []
+                for refcol in refcols:
+                    if refcol.table not in self.tables.keys():
+                        raise Exception()
+                    if isinstance(self.tables[refcol.table].ref, str):
+                        f_refcols.append(refcol)
+                    elif isinstance(self.tables[refcol.table].ref, Select):
+                        self.tables[refcol.table].ref._trace_column(
+                            refcol.name, f_refcols
+                        )
+                f_tgtcols[column] = f_refcols
+
+                refs: list[str] = []
+                self._trace_table(refs)
+                f_tables.update({ref: table.Table(ref) for ref in refs})
 
         return Update(f_tgtcols, self.tgttable, f_tables, 0, self.name)
 

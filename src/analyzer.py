@@ -70,8 +70,8 @@ class Analyzer:
 
     def _analyze_restargets(
         self, restargets: list[dict[str, Any]]
-    ) -> dict[str, list[Column]]:
-        results: dict[str, list[Column]] = {}
+    ) -> dict[str, list[Column] | node.Select]:
+        results: dict[str, list[Column] | node.Select] = {}
 
         for i, tgt in enumerate(restargets):
             if tgt.get("@", "") != "ResTarget":
@@ -79,25 +79,31 @@ class Analyzer:
 
             refcols: list[Column] = []
 
+            subquery = None
             for v in tgt.values():
                 if isinstance(v, tuple):
                     for vv in v:
                         self._extract_refcols(vv, refcols)
                 else:
-                    self._extract_refcols(v, refcols)
+                    sq = self._extract_refcols(v, refcols)
+                    if sq and not subquery:
+                        subquery = sq
+                        break
 
             name = tgt.get(
                 "name", refcols[0].name if len(refcols) == 1 else "column-" + str(i + 1)
             )
             ls = [nm for nm in results.keys() if nm.startswith(name)]
             name += "(" + str(len(ls) + 1) + ")" if len(ls) else ""
-            results[name] = refcols
+            results[name] = subquery if subquery else refcols
 
         return results
 
-    def _extract_refcols(self, tgt: dict[str, Any], refcols: list[Column]) -> None:
+    def _extract_refcols(
+        self, tgt: dict[str, Any], refcols: list[Column]
+    ) -> node.Select | None:
         if not isinstance(tgt, dict):
-            return
+            return None
 
         if tgt.get("@", "") == "ColumnRef" and "fields" in tgt.keys():
             refcol = []
@@ -106,19 +112,23 @@ class Analyzer:
                     refcol.append(field["sval"])
             if refcol:
                 refcols.append(Column.create_from_list(refcol))
-            return
+            return None
 
         if tgt.get("@", "") == "SelectStmt":
-            subquery = self._analyze_select(tgt["SelectStmt"])
-            refcols = next(iter(subquery._flatten().columns.values()))
-            return
+            return self._analyze_select(tgt)
 
         for v in tgt.values():
             if isinstance(v, tuple):
                 for vv in v:
-                    self._extract_refcols(vv, refcols)
+                    res = self._extract_refcols(vv, refcols)
+                    if res:
+                        return res
             else:
-                self._extract_refcols(v, refcols)
+                res = self._extract_refcols(v, refcols)
+                if res:
+                    return res
+
+        return None
 
     def _analyze_select(
         self, statement: dict[str, Any], layer: int = 0, name: str = ""
@@ -159,8 +169,15 @@ class Analyzer:
         return node.Insert(tgtcols, tgttbl, subquery, 0, name)
 
     def _analyze_update(self, stmt: dict[str, Any], name: str) -> node.Update:
-        tgtcols = self._analyze_restargets(stmt["targetList"])
         tables: dict[str, Table] = {}
+
+        tgtcols = self._analyze_restargets(stmt["targetList"])
+        for tgtcol, refcols in tgtcols.items():
+            if isinstance(refcols, node.Select):
+                f = refcols._flatten()
+                tables.update(f.tables)
+                refcols = next(iter(f.columns.values()))
+
         rel = stmt["relation"]
         tgttbl = {
             rel["alias"]["aliasname"]

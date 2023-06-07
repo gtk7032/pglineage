@@ -19,20 +19,20 @@ sql = (
     "UPDATE "
     + "XXX a "
     + " SET "
-    + " a.attr_name = ( "
+    + " attr_name = ( "
     + "    SELECT "
     + "    B.attr_name "
     + "    FROM "
-    + "    attribute B "
+    + "    attribute B, ref "
     + "    WHERE "
-    + "    A.attr_id = B.attr_id "
+    + "    A.attr_id = B.attr_id AND a.attr_id = ref.refid "
     + " );"
 )
 
-root = parse_sql(sql)
-stmt = root[0].stmt
-pprint(stmt(skip_none=True))
-exit()
+# root = parse_sql(sql)
+# stmt = root[0].stmt
+# pprint(stmt(skip_none=True))
+# exit()
 # sql = "insert into to_table (to_col1, to_col2)"
 # sql = "select 5 * from_table1.from_col1, from_table2.from_col4 from from_table inner join from_table2 on from_table.from_col3 = from_table2.from_col4;"
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     analyzer = Analyzer()
     analyzer.load(sql, "hello")
     nodes = analyzer.analyze()
-    for nd in nodes:
-        pprint(nd.format())
+    # for nd in nodes:
+    #     pprint(nd.format())
     lineage = Lineage.create(nodes)
     lineage.draw(args.type)
