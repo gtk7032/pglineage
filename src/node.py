@@ -261,7 +261,7 @@ class Update(Node):
             if refcol.table not in self.tables.keys():
                 raise Exception()
             if isinstance(self.tables[refcol.table].ref, str):
-                results.append(refcol)
+                results.append(Column(self.tables[refcol.table].ref, refcol.name))
             elif isinstance(self.tables[refcol.table].ref, Select):
                 self.tables[refcol.table].ref._trace_column(refcol.name, results)
 
@@ -289,7 +289,9 @@ class Update(Node):
                     if refcol.table not in self.tables.keys():
                         raise Exception()
                     if isinstance(self.tables[refcol.table].ref, str):
-                        f_refcols.append(refcol)
+                        f_refcols.append(
+                            Column(self.tables[refcol.table].ref, refcol.name)
+                        )
                     elif isinstance(self.tables[refcol.table].ref, Select):
                         self.tables[refcol.table].ref._trace_column(
                             refcol.name, f_refcols
