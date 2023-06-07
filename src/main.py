@@ -26,13 +26,15 @@ from lineage import Lineage
 #     + "    attribute B, ref "
 #     + "    WHERE "
 #     + "    A.attr_id = B.attr_id AND a.attr_id = ref.refid "
-#     + " );"
+#     + " ) "
+#     + " FROM C "
+#     + " WHERE C.id = (SELECT id FROM EFG);"
 # )
 
 sql = (
     "SELECT id,  unitid "
     "FROM t1 "
-    "WHERE id IN "
+    "WHERE id = "
     "("
     "    SELECT id"
     "    FROM t2"

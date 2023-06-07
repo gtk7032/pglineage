@@ -82,7 +82,6 @@ class Select(Node):
         for column, refcols in self.columns.items():
             f_refcols: list[Column] = []
             for refcol in refcols:
-                print(refcol.table)
                 if refcol.table not in self.tables.keys():
                     raise Exception()
                 if isinstance(self.tables[refcol.table].ref, str):
@@ -283,6 +282,7 @@ class Update(Node):
                 f = refcols._flatten()
                 f_tgtcols[column] = next(iter(f.columns.values()))
                 f_tables.update(f.tables)
+                f_tables.update(self.tables)
 
             elif isinstance(refcols, list):
                 f_refcols: list[Column] = []

@@ -68,6 +68,20 @@ class Analyzer:
             if isinstance(v, dict):
                 self._analyze_fromclause(v, tables, layer, name)
 
+    def _analyze_whereclause(
+        self, wc: dict[str, Any], tables: dict[str, Table], layer: int, name: str
+    ) -> None:
+        if "@" not in wc.keys():
+            return
+
+        if wc["@"] == "SelectStmt":
+            tables.update(self._analyze_select(wc, layer + 1, name)._flatten().tables)
+            return
+
+        for v in wc.values():
+            if isinstance(v, dict):
+                self._analyze_whereclause(v, tables, layer + 1, name)
+
     def _analyze_restargets(
         self, restargets: list[dict[str, Any]]
     ) -> dict[str, list[Column] | node.Select]:
@@ -146,20 +160,13 @@ class Analyzer:
             for fc in statement["fromClause"]:
                 self._analyze_fromclause(fc, tables, layer, name)
 
-        if "whereClause" in statement.keys():
-            if "subselect" in statement["whereClause"].keys():
-                tables.update(
-                    self._analyze_select(
-                        statement["whereClause"]["subselect"], layer + 1, name
-                    )
-                    ._flatten()
-                    .tables
-                )
-
         if len(tables.keys()) == 1:
             for refcols in columns.values():
                 for rc in refcols:
                     rc.set_table(next(iter(tables)))
+
+        if "whereClause" in statement.keys():
+            self._analyze_whereclause(statement["whereClause"], tables, layer + 1, name)
 
         return node.Select(columns, tables, layer, name)
 
@@ -197,5 +204,8 @@ class Analyzer:
         if "fromClause" in stmt.keys():
             for fc in stmt["fromClause"]:
                 self._analyze_fromclause(fc, tables, 0, name)
+
+        if "whereClause" in stmt.keys():
+            self._analyze_whereclause(stmt["whereClause"], tables, 1, name)
 
         return node.Update(tgtcols, tgttbl, tables, 0, name)
