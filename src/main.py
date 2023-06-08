@@ -31,14 +31,25 @@ from lineage import Lineage
 #     + " WHERE C.id = (SELECT id FROM EFG);"
 # )
 
+# sql = (
+#     "SELECT id,  unitid "
+#     "FROM t1 "
+#     "WHERE id = "
+#     "("
+#     "    SELECT id"
+#     "    FROM t2"
+#     ");"
+# )
+
+# sql = "UPDATE sample_animal SET " "animal_sex = tbl.col" "FROM tbl;"
+
 sql = (
-    "SELECT id,  unitid "
-    "FROM t1 "
-    "WHERE id = "
-    "("
-    "    SELECT id"
-    "    FROM t2"
-    ");"
+    "UPDATE human "
+    "SET gender = "
+    "CASE gen.gender "
+    "    WHEN '女' THEN '男' "
+    "    ELSE '女' "
+    "END;"
 )
 
 # root = parse_sql(sql)

@@ -115,7 +115,7 @@ class Analyzer:
         return results
 
     def _extract_refcols(
-        self, tgt: dict[str, Any], refcols: list[Column]
+        self, tgt: dict[str, Any], refcols: list[Column], is_case_arg: bool = False
     ) -> node.Select | None:
         if not isinstance(tgt, dict):
             return None
@@ -126,20 +126,21 @@ class Analyzer:
                 if "sval" in field.keys():
                     refcol.append(field["sval"])
             if refcol:
-                refcols.append(Column.create_from_list(refcol))
+                refcols.append(Column.create_from_list(refcol, is_case_arg))
             return None
 
-        if tgt.get("@", "") == "SelectStmt":
+        elif tgt.get("@", "") == "SelectStmt":
             return self._analyze_select(tgt)
 
-        for v in tgt.values():
+        for k, v in tgt.items():
+            is_ca = tgt["@"] == "CaseExpr" and k == "arg"
             if isinstance(v, tuple):
                 for vv in v:
-                    res = self._extract_refcols(vv, refcols)
+                    res = self._extract_refcols(vv, refcols, is_ca)
                     if res:
                         return res
             else:
-                res = self._extract_refcols(v, refcols)
+                res = self._extract_refcols(v, refcols, is_ca)
                 if res:
                     return res
 
@@ -187,24 +188,39 @@ class Analyzer:
         return node.Insert(tgtcols, tgttbl, subquery, 0, name)
 
     def _analyze_update(self, stmt: dict[str, Any], name: str) -> node.Update:
-        tables: dict[str, Table] = {}
-
-        tgtcols = self._analyze_restargets(stmt["targetList"])
-        for tgtcol, refcols in tgtcols.items():
-            if isinstance(refcols, node.Select):
-                f = refcols._flatten()
-                tables.update(f.tables)
-                refcols = next(iter(f.columns.values()))
-
         rel = stmt["relation"]
         tgttbl = {
             rel["alias"]["aliasname"]
             if "alias" in rel.keys()
             else rel["relname"]: Table(rel["relname"])
         }
+
+        tables: dict[str, Table] = {}
+
         if "fromClause" in stmt.keys():
             for fc in stmt["fromClause"]:
                 self._analyze_fromclause(fc, tables, 0, name)
+
+        tgtcols = self._analyze_restargets(stmt["targetList"])
+
+        if len(tables.keys()) == 1:
+            for refcols in tgtcols.values():
+                if isinstance(refcols, list):
+                    for rc in refcols:
+                        rc.set_table(next(iter(tables)))
+
+        for refcols in tgtcols.values():
+            if isinstance(refcols, node.Select):
+                f = refcols._flatten()
+                tables.update(f.tables)
+                refcols = next(iter(f.columns.values()))
+            elif isinstance(refcols, list):
+                for refcol in refcols:
+                    if refcol.use == 1 and refcol.table:
+                        tables.setdefault(refcol.table, Table(refcol.table))
+
+        for tgtcol, refcols in tgtcols.items():
+            tgtcols[tgtcol] = [refcol for refcol in refcols if refcol.use == 0]
 
         if "whereClause" in stmt.keys():
             self._analyze_whereclause(stmt["whereClause"], tables, 1, name)

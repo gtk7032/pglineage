@@ -2,9 +2,10 @@ from __future__ import annotations
 
 
 class Column:
-    def __init__(self, table: str, name: str):
+    def __init__(self, table: str, name: str, use: int = 0):
         self.table = table
         self.name = name
+        self.use = use
 
     def __str__(self) -> str:
         if self.table:
@@ -16,7 +17,7 @@ class Column:
         self.table = table
 
     @staticmethod
-    def create_from_list(ls: list[str]):
+    def create_from_list(ls: list[str], is_casearg=False):
         name = ls[-1]
         table = ls[-2] if len(ls) == 2 else ""
-        return Column(table, name)
+        return Column(table, name, 1 if is_casearg else 0)
