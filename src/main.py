@@ -43,14 +43,28 @@ from lineage import Lineage
 
 # sql = "UPDATE sample_animal SET " "animal_sex = tbl.col" "FROM tbl;"
 
-sql = (
-    "UPDATE human "
-    "SET gender = "
-    "CASE gen.gender "
-    "    WHEN '女' THEN '男' "
-    "    ELSE '女' "
-    "END;"
-)
+# sql = (
+#     "UPDATE human "
+#     "SET gender = "
+#     "CASE gen.gender "
+#     "    WHEN '女' THEN '男' "
+#     "    ELSE '女' "
+#     "END;"
+# )
+
+# sql = "select case gender when gender = 1 then 2 else 3 end from tbl;"
+sql = "select case when ( select gender from reftable where col = 'x')= 1 then 2 else 3 end from tbl;"
+
+# sql = (
+#     "UPDATE human "
+#     "SET gender = "
+#     "CASE gender "
+#     "    WHEN EXISTS("
+#     "    SELECT 1 FROM human2 WHERE age = 1"
+#     ") THEN '男' "
+#     "    ELSE '女' "
+#     "END;"
+# )
 
 # root = parse_sql(sql)
 # stmt = root[0].stmt
