@@ -39,11 +39,18 @@ class Lineage:
             lineage._tgt_tbls[tbl].update(summary.tgt_tbl[tbl])
 
             for tbl in summary.ref_tbls:
-                lineage._ref_tbls.add(tbl)
+                if tbl not in lineage._src_tbls:
+                    lineage._ref_tbls.add(tbl)
 
             lineage._col_edges.update(summary.col_edges)
             lineage._tbl_edges.update(summary.tbl_edges)
-            lineage._ref_edges.update(summary.ref_edges)
+            lineage._ref_edges.update(
+                {
+                    k: v
+                    for k, v in summary.ref_edges.items()
+                    if k not in lineage._tbl_edges
+                }
+            )
 
         return lineage
 

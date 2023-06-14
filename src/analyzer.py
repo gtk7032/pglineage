@@ -105,8 +105,10 @@ class Analyzer:
                 if isinstance(v, tuple):
                     for vv in v:
                         self._analyze_restarget(vv, srccols, refcols)
+                        print(refcols)
                 else:
                     self._analyze_restarget(v, srccols, refcols)
+                    print(refcols)
 
             name = tgt.get(
                 "name", srccols[0].name if len(srccols) == 1 else "column-" + str(i + 1)
@@ -152,7 +154,6 @@ class Analyzer:
                             srccols.extend(sc)
                     if refcols is not None:
                         for rc in stmt.refcols.values():
-                            print(str(rc))
                             refcols.extend(rc)
                 case "ColumnRef":
                     col = self._collect_column(tgt)
@@ -220,7 +221,9 @@ class Analyzer:
                     for rc in stmt.refcols.values():
                         refcols.extend(rc)
                 case "CaseExpr":
-                    srccols, refcols = self._extract_caseexpr(t)
+                    res = self._extract_caseexpr(t)
+                    srccols.extend(res[0])
+                    refcols.extend(res[1])
 
         return None
 
@@ -229,7 +232,9 @@ class Analyzer:
     ) -> node.Select:
         srccols, refcols = self._analyze_restargets(statement["targetList"])
         tables: dict[str, Table] = {}
-
+        for c, rc in refcols.items():
+            print(c)
+            print(rc)
         if "withClause" in statement.keys():
             for cte in statement["withClause"]["ctes"]:
                 tables[cte["ctename"]] = Table(
@@ -246,6 +251,9 @@ class Analyzer:
                     sc.set_table(next(iter(tables)))
                 for rc in rcs:
                     rc.set_table(next(iter(tables)))
+
+        # for r in refcols:
+        #     print(r)
 
         if "whereClause" in statement.keys():
             self._analyze_whereclause(statement["whereClause"], tables, layer + 1, name)

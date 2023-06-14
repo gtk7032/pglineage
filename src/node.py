@@ -104,7 +104,6 @@ class Select(Node):
         refs: list[str] = []
         self._trace_table(refs)
         f_tables = {ref: table.Table(ref) for ref in refs}
-
         return Select(f_srccols, f_refcols, f_tables, name=self.name)
 
     def summary(
@@ -135,7 +134,7 @@ class Select(Node):
                 )
                 tbl_edges.setdefault(self.name + str(to.table), (self.name, to.table))
 
-        for refcols in self.refcols.values():
+        for refcols in f.refcols.values():
             ref_tbls.update({rc.table for rc in refcols})
 
         for ft in f.tables:
