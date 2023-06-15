@@ -18,7 +18,7 @@ class Column:
             self.table = table
 
     @staticmethod
-    def set_tables(cols: list[Column], tbl: str) -> list[Column]:
+    def set_tables(cols: list[Column]) -> list[Column]:
         cs = []
         for c in cols:
             cs.append(Column(tbl, c.name))

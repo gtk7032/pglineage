@@ -84,10 +84,6 @@ class Analyzer:
             if isinstance(v, dict):
                 self._analyze_whereclause(v, tables, layer + 1, name)
 
-    def _analyze_case(self, tgt) -> None:
-        if tgt.get("@", "") != "CaseExpr":
-            Exception()
-
     def _analyze_restargets(
         self, restargets: list[dict[str, Any]], tbl: str
     ) -> Tuple[dict[str, list[Column]], dict[str, list[Column]]]:
@@ -143,37 +139,56 @@ class Analyzer:
             if col:
                 refcols.append(col)
 
-        def func(tgt, srccols=None, refcols=None):
-            match tgt.get("@", ""):
-                case "SelectStmt":
-                    stmt = self._analyze_select(tgt)._flatten()
-                    if srccols is not None:
-                        for sc in stmt.srccols.values():
-                            srccols.extend(sc)
-                    if refcols is not None:
-                        for rc in stmt.refcols.values():
-                            refcols.extend(rc)
-                case "ColumnRef":
-                    col = self._collect_column(tgt, tbl)
-                    if col:
-                        if srccols is not None:
-                            srccols.append(col)
-                        if refcols is not None:
-                            refcols.append(col)
-
         TYPES = ["SelectStmt", "ColumnRef"]
 
         args = tgt.get("args", ())
         for arg in args:
             if arg["@"] == "CaseWhen":
                 for next_tgt in self.traverse("expr", arg["expr"], TYPES):
-                    func(next_tgt[1], None, refcols)
+                    nt = next_tgt[1]
+                    match nt.get("@", ""):
+                        case "SelectStmt":
+                            stmt = self._analyze_select(nt)._flatten()
+                            for sc, rc in zip(
+                                stmt.srccols.values(), stmt.refcols.values()
+                            ):
+                                refcols.extend(sc)
+                                refcols.extend(rc)
+                                for i in refcols:
+                                    print(i)
+                                print("WWWWWWWWWWWW")
+                        case "ColumnRef":
+                            col = self._collect_column(nt, tbl)
+                            if col:
+                                refcols.append(col)
                 for next_tgt in self.traverse("result", arg["result"], TYPES):
-                    func(next_tgt[1], srccols, refcols)
+                    nt = next_tgt[1]
+                    match nt.get("@", ""):
+                        case "SelectStmt":
+                            stmt = self._analyze_select(nt)._flatten()
+                            for sc, rc in zip(
+                                stmt.srccols.values(), stmt.refcols.values()
+                            ):
+                                srccols.extend(sc)
+                                refcols.extend(rc)
+                        case "ColumnRef":
+                            col = self._collect_column(nt, tbl)
+                            if col:
+                                srccols.append(col)
 
         defresult = tgt.get("defresult", {})
         for next_tgt in self.traverse("defresult", defresult, TYPES):
-            func(next_tgt[1], srccols, refcols)
+            nt = next_tgt[1]
+            match nt.get("@", ""):
+                case "SelectStmt":
+                    stmt = self._analyze_select(nt)._flatten()
+                    for sc, rc in zip(stmt.srccols.values(), stmt.refcols.values()):
+                        srccols.extend(sc)
+                        refcols.extend(rc)
+                case "ColumnRef":
+                    col = self._collect_column(nt, tbl)
+                    if col:
+                        srccols.append(col)
 
         def uniq(cols):
             u = set()
@@ -218,18 +233,19 @@ class Analyzer:
                 case "ColumnRef":
                     col = self._collect_column(t, tbl)
                     if col:
+                        print(col)
                         srccols.append(col)
                 case "SelectStmt":
                     stmt = self._analyze_select(t)._flatten()
                     for sc in stmt.srccols.values():
-                        srccols.extend(Column.set_tables(sc, tbl))
+                        srccols.extend(sc)
                     for rc in stmt.refcols.values():
-                        refcols.extend(Column.set_tables(rc, tbl))
+                        refcols.extend(rc)
                     return
                 case "CaseExpr":
                     res = self._extract_caseexpr(t, tbl)
-                    srccols.extend(Column.set_tables(res[0], tbl))
-                    refcols.extend(Column.set_tables(res[1], tbl))
+                    srccols.extend(res[0])
+                    refcols.extend(res[1])
                     return
 
     def _analyze_select(
@@ -247,10 +263,13 @@ class Analyzer:
             for fc in statement["fromClause"]:
                 self._analyze_fromclause(fc, tables, layer, name)
 
+        print(">>")
+        print(next(iter(tables)))
         srccols, refcols = self._analyze_restargets(
             statement["targetList"],
             next(iter(tables)) if len(tables.keys()) == 1 else "",
         )
+        print(refcols)
 
         if "whereClause" in statement.keys():
             self._analyze_whereclause(statement["whereClause"], tables, layer + 1, name)

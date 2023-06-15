@@ -88,9 +88,11 @@ class Select(Node):
         for column, refcols in columns.items():
             f_refcols: list[Column] = []
             for refcol in refcols:
-                if refcol.table not in self.tables.keys():
-                    raise Exception()
-                if isinstance(self.tables[refcol.table].ref, str):
+                # if refcol.table not in self.tables.keys():
+                #     raise Exception()
+                if refcol.table not in self.tables:
+                    f_refcols.append(refcol)
+                elif isinstance(self.tables[refcol.table].ref, str):
                     f_refcols.append(Column(self.tables[refcol.table].ref, refcol.name))
                 elif isinstance(self.tables[refcol.table].ref, Select):
                     self.tables[refcol.table].ref._trace_column(refcol.name, f_refcols)
