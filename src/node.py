@@ -88,8 +88,6 @@ class Select(Node):
         for column, refcols in columns.items():
             f_refcols: list[Column] = []
             for refcol in refcols:
-                # if refcol.table not in self.tables.keys():
-                #     raise Exception()
                 if refcol.table not in self.tables:
                     f_refcols.append(refcol)
                 elif isinstance(self.tables[refcol.table].ref, str):
@@ -97,25 +95,12 @@ class Select(Node):
                 elif isinstance(self.tables[refcol.table].ref, Select):
                     self.tables[refcol.table].ref._trace_column(refcol.name, f_refcols)
             f_columns[column] = f_refcols
-            if column == "column-1":
-                for rc in f_refcols:
-                    print()
-                    print(rc)
-                    print("cc")
 
         return f_columns
 
     def _flatten(self) -> Select:
         f_srccols = self._aa(self.srccols)
         f_refcols = self._aa(self.refcols)
-        for k, v in f_refcols.items():
-            print()
-            print("ff")
-            for rc in v:
-                print(k)
-                print(rc)
-                print("dd")
-                print()
         refs: list[str] = []
         self._trace_table(refs)
         f_tables = {ref: table.Table(ref) for ref in refs}
@@ -134,9 +119,12 @@ class Select(Node):
         tbl_edges: dict[str, Tuple[str, str]] = {}
         ref_edges: dict[str, Tuple[str, str]] = {}
 
+        tbl_edges.setdefault(self.name + out_tblnm, (self.name, out_tblnm))
+
         f = self._flatten()
         for colname, srccols in f.srccols.items():
             tgt_tbl[out_tblnm].setdefault(colname)
+
             for srccol in srccols:
                 src_tbls.setdefault(srccol.table, {})
                 src_tbls[srccol.table].setdefault(srccol.name)
@@ -147,7 +135,6 @@ class Select(Node):
                 tbl_edges.setdefault(
                     str(from_.table) + self.name, (from_.table, self.name)
                 )
-                tbl_edges.setdefault(self.name + str(to.table), (self.name, to.table))
 
         for refcols in f.refcols.values():
             ref_tbls.update({rc.table for rc in refcols})

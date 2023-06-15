@@ -18,13 +18,6 @@ class Column:
             self.table = table
 
     @staticmethod
-    def set_tables(cols: list[Column]) -> list[Column]:
-        cs = []
-        for c in cols:
-            cs.append(Column(tbl, c.name))
-        return cs
-
-    @staticmethod
     def create_from_list(ls: list[str]):
         name = ls[-1]
         table = ls[-2] if len(ls) == 2 else ""

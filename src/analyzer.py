@@ -154,9 +154,7 @@ class Analyzer:
                             ):
                                 refcols.extend(sc)
                                 refcols.extend(rc)
-                                for i in refcols:
-                                    print(i)
-                                print("WWWWWWWWWWWW")
+
                         case "ColumnRef":
                             col = self._collect_column(nt, tbl)
                             if col:
@@ -233,7 +231,6 @@ class Analyzer:
                 case "ColumnRef":
                     col = self._collect_column(t, tbl)
                     if col:
-                        print(col)
                         srccols.append(col)
                 case "SelectStmt":
                     stmt = self._analyze_select(t)._flatten()
@@ -263,13 +260,10 @@ class Analyzer:
             for fc in statement["fromClause"]:
                 self._analyze_fromclause(fc, tables, layer, name)
 
-        print(">>")
-        print(next(iter(tables)))
         srccols, refcols = self._analyze_restargets(
             statement["targetList"],
             next(iter(tables)) if len(tables.keys()) == 1 else "",
         )
-        print(refcols)
 
         if "whereClause" in statement.keys():
             self._analyze_whereclause(statement["whereClause"], tables, layer + 1, name)
