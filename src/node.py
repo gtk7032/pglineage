@@ -95,12 +95,25 @@ class Select(Node):
                 elif isinstance(self.tables[refcol.table].ref, Select):
                     self.tables[refcol.table].ref._trace_column(refcol.name, f_refcols)
             f_columns[column] = f_refcols
+            if column == "column-1":
+                for rc in f_refcols:
+                    print()
+                    print(rc)
+                    print("cc")
+
         return f_columns
 
     def _flatten(self) -> Select:
         f_srccols = self._aa(self.srccols)
         f_refcols = self._aa(self.refcols)
-
+        for k, v in f_refcols.items():
+            print()
+            print("ff")
+            for rc in v:
+                print(k)
+                print(rc)
+                print("dd")
+                print()
         refs: list[str] = []
         self._trace_table(refs)
         f_tables = {ref: table.Table(ref) for ref in refs}
@@ -144,6 +157,8 @@ class Select(Node):
         for rt in ref_tbls:
             key = rt + self.name
             ref_edges.setdefault(key, (rt, self.name))
+
+        tbl_edges.setdefault(self.name + out_tblnm, (self.name, out_tblnm))
 
         return Summary(src_tbls, tgt_tbl, ref_tbls, col_edges, tbl_edges, ref_edges)
 

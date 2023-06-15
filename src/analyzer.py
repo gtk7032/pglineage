@@ -89,7 +89,7 @@ class Analyzer:
             Exception()
 
     def _analyze_restargets(
-        self, restargets: list[dict[str, Any]]
+        self, restargets: list[dict[str, Any]], tbl: str
     ) -> Tuple[dict[str, list[Column]], dict[str, list[Column]]]:
         srcs: dict[str, list[Column]] = {}
         refs: dict[str, list[Column]] = {}
@@ -104,11 +104,9 @@ class Analyzer:
             for v in tgt.values():
                 if isinstance(v, tuple):
                     for vv in v:
-                        self._analyze_restarget(vv, srccols, refcols)
-                        print(refcols)
+                        self._analyze_restarget(vv, srccols, refcols, tbl)
                 else:
-                    self._analyze_restarget(v, srccols, refcols)
-                    print(refcols)
+                    self._analyze_restarget(v, srccols, refcols, tbl)
 
             name = tgt.get(
                 "name", srccols[0].name if len(srccols) == 1 else "column-" + str(i + 1)
@@ -135,13 +133,13 @@ class Analyzer:
                         for t in list(self.traverse("", v, types)):
                             yield t
 
-    def _extract_caseexpr(self, tgt) -> Tuple[list[Column], list[Column]]:
+    def _extract_caseexpr(self, tgt, tbl: str) -> Tuple[list[Column], list[Column]]:
         srccols: list[Column] = []
         refcols: list[Column] = []
 
         arg = tgt.get("arg", {})
         if arg.get("@", "") == "ColumnRef":
-            col = self._collect_column(arg)
+            col = self._collect_column(arg, tbl)
             if col:
                 refcols.append(col)
 
@@ -156,25 +154,25 @@ class Analyzer:
                         for rc in stmt.refcols.values():
                             refcols.extend(rc)
                 case "ColumnRef":
-                    col = self._collect_column(tgt)
+                    col = self._collect_column(tgt, tbl)
                     if col:
                         if srccols is not None:
                             srccols.append(col)
                         if refcols is not None:
                             refcols.append(col)
 
-        types = ["SelectStmt", "ColumnRef"]
+        TYPES = ["SelectStmt", "ColumnRef"]
 
         args = tgt.get("args", ())
         for arg in args:
             if arg["@"] == "CaseWhen":
-                for next_tgt in self.traverse("expr", arg["expr"], types):
+                for next_tgt in self.traverse("expr", arg["expr"], TYPES):
                     func(next_tgt[1], None, refcols)
-                for next_tgt in self.traverse("result", arg["result"], types):
+                for next_tgt in self.traverse("result", arg["result"], TYPES):
                     func(next_tgt[1], srccols, refcols)
 
         defresult = tgt.get("defresult", {})
-        for next_tgt in self.traverse("defresult", defresult, types):
+        for next_tgt in self.traverse("defresult", defresult, TYPES):
             func(next_tgt[1], srccols, refcols)
 
         def uniq(cols):
@@ -189,7 +187,7 @@ class Analyzer:
 
         return uniq(srccols), uniq(refcols)
 
-    def _collect_column(self, tgt) -> Column | None:
+    def _collect_column(self, tgt, tbl: str) -> Column | None:
         if "fields" not in tgt:
             return None
 
@@ -198,10 +196,17 @@ class Analyzer:
             if "sval" in field.keys():
                 col.append(field["sval"])
 
+        if len(col) == 1 and tbl:
+            col = [tbl, col[0]]
+
         return Column.create_from_list(col) if col else None
 
     def _analyze_restarget(
-        self, tgt: dict[str, Any], srccols: list[Column], refcols: list[Column]
+        self,
+        tgt: dict[str, Any],
+        srccols: list[Column],
+        refcols: list[Column],
+        tbl: str,
     ) -> None:
         if not isinstance(tgt, dict):
             return None
@@ -211,30 +216,27 @@ class Analyzer:
             t = rt[1]
             match t.get("@", ""):
                 case "ColumnRef":
-                    col = self._collect_column(t)
+                    col = self._collect_column(t, tbl)
                     if col:
                         srccols.append(col)
                 case "SelectStmt":
                     stmt = self._analyze_select(t)._flatten()
                     for sc in stmt.srccols.values():
-                        srccols.extend(sc)
+                        srccols.extend(Column.set_tables(sc, tbl))
                     for rc in stmt.refcols.values():
-                        refcols.extend(rc)
+                        refcols.extend(Column.set_tables(rc, tbl))
+                    return
                 case "CaseExpr":
-                    res = self._extract_caseexpr(t)
-                    srccols.extend(res[0])
-                    refcols.extend(res[1])
-
-        return None
+                    res = self._extract_caseexpr(t, tbl)
+                    srccols.extend(Column.set_tables(res[0], tbl))
+                    refcols.extend(Column.set_tables(res[1], tbl))
+                    return
 
     def _analyze_select(
         self, statement: dict[str, Any], layer: int = 0, name: str = ""
     ) -> node.Select:
-        srccols, refcols = self._analyze_restargets(statement["targetList"])
         tables: dict[str, Table] = {}
-        for c, rc in refcols.items():
-            print(c)
-            print(rc)
+
         if "withClause" in statement.keys():
             for cte in statement["withClause"]["ctes"]:
                 tables[cte["ctename"]] = Table(
@@ -245,15 +247,10 @@ class Analyzer:
             for fc in statement["fromClause"]:
                 self._analyze_fromclause(fc, tables, layer, name)
 
-        if len(tables.keys()) == 1:
-            for scs, rcs in zip(srccols.values(), refcols.values()):
-                for sc in scs:
-                    sc.set_table(next(iter(tables)))
-                for rc in rcs:
-                    rc.set_table(next(iter(tables)))
-
-        # for r in refcols:
-        #     print(r)
+        srccols, refcols = self._analyze_restargets(
+            statement["targetList"],
+            next(iter(tables)) if len(tables.keys()) == 1 else "",
+        )
 
         if "whereClause" in statement.keys():
             self._analyze_whereclause(statement["whereClause"], tables, layer + 1, name)

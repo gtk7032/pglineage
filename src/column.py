@@ -14,10 +14,18 @@ class Column:
             return self.name
 
     def set_table(self, table: str) -> None:
-        self.table = table
+        if not self.table:
+            self.table = table
 
     @staticmethod
-    def create_from_list(ls: list[str], is_casearg=False):
+    def set_tables(cols: list[Column], tbl: str) -> list[Column]:
+        cs = []
+        for c in cols:
+            cs.append(Column(tbl, c.name))
+        return cs
+
+    @staticmethod
+    def create_from_list(ls: list[str]):
         name = ls[-1]
         table = ls[-2] if len(ls) == 2 else ""
-        return Column(table, name, 1 if is_casearg else 0)
+        return Column(table, name)
