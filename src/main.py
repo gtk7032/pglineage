@@ -53,8 +53,8 @@ from lineage import Lineage
 # )
 
 # sql = "select case gender when gender = 1 then 2 else 3 end from tbl;"
-sql = "select case when ( select gender from reftable where col = 'x')= 1 then 2 else 3 end from tbl;"
-
+# sql = "select case when ( select gender from reftable where col = 'x')= 1 then 2 else 3 end from tbl;"
+sql = "select case when col = 1 then col else col2 end from tbl;"
 # sql = (
 #     "UPDATE human "
 #     "SET gender = "

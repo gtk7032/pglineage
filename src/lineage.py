@@ -121,8 +121,6 @@ class Lineage:
             self.__dot.node(name, label=name, shape="note")
 
     def draw_1(self) -> None:
-        self._draw_nodes()
-        self._draw_tbledges()
         self._draw_srctables(1)
         self._draw_tgttables(1)
         self._draw_coledges()
