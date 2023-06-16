@@ -106,8 +106,7 @@ if __name__ == "__main__":
 
     analyzer = Analyzer()
     analyzer.load(sql, "hello")
-    nodes = analyzer.analyze()
     # for nd in nodes:
     #     pprint(nd.format())
-    lineage = Lineage.create(nodes)
+    lineage = analyzer.analyze()
     lineage.draw(args.type)

@@ -6,6 +6,7 @@ from pglast import ast, parse_sql
 
 import node
 from column import Column
+from lineage import Lineage
 from table import Table
 
 
@@ -18,7 +19,7 @@ class Analyzer:
             (name.lower(), sql.stmt) for sql in parse_sql(sqls.lower())
         )
 
-    def index(self) -> None:
+    def __index(self) -> None:
         tmp = []
         for stmt1 in self.__rawstmts:
             cnt = 0
@@ -33,8 +34,12 @@ class Analyzer:
                 tmp.append((stmt1[0], stmt1[1]))
         self.__rawstmts = tmp
 
-    def analyze(self) -> list[node.Node]:
-        self.index()
+    def analyze(self) -> Lineage:
+        self.__index()
+        nodes = self.__analyze()
+        return Lineage.create(nodes)
+
+    def __analyze(self) -> list[node.Node]:
         nodes: list[node.Node] = []
         for name, rawstmt in tqdm.tqdm(self.__rawstmts):
             match rawstmt:

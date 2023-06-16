@@ -17,6 +17,8 @@ class Summary(NamedTuple):
 
 
 class Node(metaclass=abc.ABCMeta):
+    STATEMENT = ""
+
     @abc.abstractmethod
     def format(self) -> dict[str, Any]:
         raise NotImplementedError()

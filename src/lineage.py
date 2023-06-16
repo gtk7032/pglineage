@@ -55,8 +55,18 @@ class Lineage:
         return lineage
 
     @staticmethod
+    def __sort(nodes: list[node.Node]) -> list[node.Node]:
+        fst, snd = [], []
+        for nd in nodes:
+            if nd.STATEMENT == node.Insert.STATEMENT:
+                fst.append(nd)
+            else:
+                snd.append(nd)
+        return fst + snd
+
+    @staticmethod
     def create(nodes: list[node.Node]) -> Lineage:
-        return Lineage.merge(nodes)
+        return Lineage.merge(Lineage.__sort(nodes))
 
     def draw(self, type: int) -> None:
         self.__dot = gv.Digraph(format="png", filename="pglineage.gv")
