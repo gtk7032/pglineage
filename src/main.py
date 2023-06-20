@@ -41,7 +41,7 @@ from lineage import Lineage
 #     ");"
 # )
 
-# sql = "UPDATE sample_animal SET " "animal_sex = tbl.col" "FROM tbl;"
+# sql = "UPDATE animal SET " "gender = tbl.col" "FROM tbl;"
 
 # sql = (
 #     "UPDATE human "
