@@ -281,7 +281,7 @@ class Analyzer:
             else rel["relname"]: Table(rel["relname"])
         }
         subquery = (
-            self.__analyze_select(stmt["selectStmt"], 1)
+            self.__analyze_select(stmt["selectStmt"])
             if "selectStmt" in stmt.keys()
             else None
         )
@@ -311,6 +311,6 @@ class Analyzer:
                     rc.set_table(next(iter(tgttbl)))
 
         if "whereClause" in stmt.keys():
-            self.__analyze_whereclause(stmt["whereClause"], tables, 1, name)
+            self.__analyze_whereclause(stmt["whereClause"], tables, name)
 
         return node.Update(srccols, refcols, tgttbl, tables, name)
