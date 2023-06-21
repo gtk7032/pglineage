@@ -2,10 +2,9 @@ from __future__ import annotations
 
 
 class Column:
-    def __init__(self, table: str, name: str, use: int = 0):
+    def __init__(self, table: str, name: str):
         self.table = table
         self.name = name
-        self.use = use
 
     def __str__(self) -> str:
         if self.table:

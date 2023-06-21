@@ -30,6 +30,13 @@ class Lineage:
 
             summary = nd.summary()
 
+            if (
+                not summary.src_tbls
+                and not summary.ref_tbls
+                and nd.STATEMENT == node.Select.STATEMENT
+            ):
+                continue
+
             for tbl, cols in summary.src_tbls.items():
                 lineage._src_tbls.setdefault(tbl, {})
                 lineage._src_tbls[tbl].update(cols)

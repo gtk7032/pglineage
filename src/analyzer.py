@@ -56,7 +56,6 @@ class Analyzer:
         self,
         fc: dict[str, Any],
         tables: dict[str, Table],
-        layer: int = 0,
         name: str = "",
     ) -> None:
         if "@" not in fc.keys():
@@ -64,7 +63,7 @@ class Analyzer:
 
         if fc["@"] == "RangeSubselect":
             tables[fc["alias"]["aliasname"]] = Table(
-                self.__analyze_select(fc["subquery"], layer + 1, name=name),
+                self.__analyze_select(fc["subquery"], name=name),
             )
 
         elif fc["@"] == "RangeVar":
@@ -73,21 +72,21 @@ class Analyzer:
 
         for v in fc.values():
             if isinstance(v, dict):
-                self.__analyze_fromclause(v, tables, layer, name)
+                self.__analyze_fromclause(v, tables, name)
 
     def __analyze_whereclause(
-        self, wc: dict[str, Any], tables: dict[str, Table], layer: int, name: str
+        self, wc: dict[str, Any], tables: dict[str, Table], name: str
     ) -> None:
         if "@" not in wc.keys():
             return
 
         if wc["@"] == "SelectStmt":
-            tables.update(self.__analyze_select(wc, layer + 1, name)._flatten().tables)
+            tables.update(self.__analyze_select(wc, name)._flatten().tables)
             return
 
         for v in wc.values():
             if isinstance(v, dict):
-                self.__analyze_whereclause(v, tables, layer + 1, name)
+                self.__analyze_whereclause(v, tables, name)
 
     def __analyze_restargets(
         self, restargets: list[dict[str, Any]]
@@ -244,19 +243,19 @@ class Analyzer:
                     return
 
     def __analyze_select(
-        self, statement: dict[str, Any], layer: int = 0, name: str = ""
+        self, statement: dict[str, Any], name: str = ""
     ) -> node.Select:
         tables: dict[str, Table] = {}
 
         if "withClause" in statement.keys():
             for cte in statement["withClause"]["ctes"]:
                 tables[cte["ctename"]] = Table(
-                    self.__analyze_select(cte["ctequery"], layer + 1, name)
+                    self.__analyze_select(cte["ctequery"], name)
                 )
 
         if "fromClause" in statement.keys():
             for fc in statement["fromClause"]:
-                self.__analyze_fromclause(fc, tables, layer, name)
+                self.__analyze_fromclause(fc, tables, name)
 
         srccols, refcols = self.__analyze_restargets(statement["targetList"])
 
@@ -269,11 +268,9 @@ class Analyzer:
                     rc.set_table(t)
 
         if "whereClause" in statement.keys():
-            self.__analyze_whereclause(
-                statement["whereClause"], tables, layer + 1, name
-            )
+            self.__analyze_whereclause(statement["whereClause"], tables, name)
 
-        return node.Select(srccols, refcols, tables, layer, name)
+        return node.Select(srccols, refcols, tables, name)
 
     def __analyze_insert(self, stmt: dict[str, Any], name: str) -> node.Insert:
         srccols, refcols = self.__analyze_restargets(stmt["cols"])
@@ -288,7 +285,7 @@ class Analyzer:
             if "selectStmt" in stmt.keys()
             else None
         )
-        return node.Insert(srccols, refcols, tgttbl, subquery, 0, name)
+        return node.Insert(srccols, refcols, tgttbl, subquery, name)
 
     def __analyze_update(self, stmt: dict[str, Any], name: str) -> node.Update:
         rel = stmt["relation"]
@@ -302,7 +299,7 @@ class Analyzer:
 
         if "fromClause" in stmt.keys():
             for fc in stmt["fromClause"]:
-                self.__analyze_fromclause(fc, tables, 0, name)
+                self.__analyze_fromclause(fc, tables, name)
 
         srccols, refcols = self.__analyze_restargets(stmt["targetList"])
 
@@ -316,4 +313,4 @@ class Analyzer:
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables, 1, name)
 
-        return node.Update(srccols, refcols, tgttbl, tables, 0, name)
+        return node.Update(srccols, refcols, tgttbl, tables, name)
