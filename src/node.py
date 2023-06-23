@@ -125,24 +125,23 @@ class Select(Node):
                 tbl.ref._trace_table(results)
         return
 
-    def __aa(self, columns: dict[str, list[Column]]) -> dict[str, list[Column]]:
+    def __flatten_srccols(self, columns: dict[str, list[Column]]) -> dict[str, list[Column]]:
         f_columns: dict[str, list[Column]] = {}
         for column, refcols in columns.items():
             f_refcols: list[Column] = []
             for refcol in refcols:
                 if refcol.table not in self.tables:
-                    f_refcols.append(refcol)
+                    raise Exception()
                 elif isinstance(self.tables[refcol.table].ref, str):
                     f_refcols.append(Column(self.tables[refcol.table].ref, refcol.name))
                 elif isinstance(self.tables[refcol.table].ref, Select):
                     self.tables[refcol.table].ref._trace_column(refcol.name, f_refcols)
             f_columns[column] = f_refcols
-
         return f_columns
 
     def _flatten(self) -> Select:
-        f_srccols = self.__aa(self.srccols)
-        f_refcols = self.__aa(self.refcols)
+        f_srccols = self.__flatten_srccols(self.srccols)
+        f_refcols = self.refcols
         refs: list[str] = []
         self._trace_table(refs)
         f_tables = {ref: table.Table(ref) for ref in refs}
