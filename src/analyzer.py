@@ -39,8 +39,8 @@ class Analyzer:
         nodes = self.__analyze()
         return Lineage.create(nodes)
 
-    def __analyze(self) -> list[node.Node]:
-        nodes: list[node.Node] = []
+    def __analyze(self) -> list[Tuple[str, node.Node]]:
+        nodes: list[Tuple[str, node.Node]] = []
         for name, rawstmt in tqdm.tqdm(self.__rawstmts):
             match rawstmt:
                 case ast.SelectStmt():
@@ -49,21 +49,18 @@ class Analyzer:
                     analyze_stmt = self.__analyze_insert
                 case ast.UpdateStmt():
                     analyze_stmt = self.__analyze_update
-            nodes.append(analyze_stmt(rawstmt(skip_none=True), name=name))
+            nodes.append((name, analyze_stmt(rawstmt(skip_none=True))))
         return nodes
 
     def __analyze_fromclause(
-        self,
-        fc: dict[str, Any],
-        tables: dict[str, Table],
-        name: str = "",
+        self, fc: dict[str, Any], tables: dict[str, Table]
     ) -> None:
         if "@" not in fc.keys():
             return
 
         if fc["@"] == "RangeSubselect":
             tables[fc["alias"]["aliasname"]] = Table(
-                self.__analyze_select(fc["subquery"], name=name),
+                self.__analyze_select(fc["subquery"]),
             )
 
         elif fc["@"] == "RangeVar":
@@ -72,21 +69,21 @@ class Analyzer:
 
         for v in fc.values():
             if isinstance(v, dict):
-                self.__analyze_fromclause(v, tables, name)
+                self.__analyze_fromclause(v, tables)
 
     def __analyze_whereclause(
-        self, wc: dict[str, Any], tables: dict[str, Table], name: str
+        self, wc: dict[str, Any], tables: dict[str, Table]
     ) -> None:
         if "@" not in wc.keys():
             return
 
         if wc["@"] == "SelectStmt":
-            tables.update(self.__analyze_select(wc, name)._flatten().tables)
+            tables.update(self.__analyze_select(wc)._flatten().tables)
             return
 
         for v in wc.values():
             if isinstance(v, dict):
-                self.__analyze_whereclause(v, tables, name)
+                self.__analyze_whereclause(v, tables)
 
     def __analyze_restargets(
         self, restargets: list[dict[str, Any]]
@@ -242,20 +239,16 @@ class Analyzer:
                     refcols.extend(res[1])
                     return
 
-    def __analyze_select(
-        self, statement: dict[str, Any], name: str = ""
-    ) -> node.Select:
+    def __analyze_select(self, statement: dict[str, Any]) -> node.Select:
         tables: dict[str, Table] = {}
 
         if "withClause" in statement.keys():
             for cte in statement["withClause"]["ctes"]:
-                tables[cte["ctename"]] = Table(
-                    self.__analyze_select(cte["ctequery"], name)
-                )
+                tables[cte["ctename"]] = Table(self.__analyze_select(cte["ctequery"]))
 
         if "fromClause" in statement.keys():
             for fc in statement["fromClause"]:
-                self.__analyze_fromclause(fc, tables, name)
+                self.__analyze_fromclause(fc, tables)
 
         srccols, refcols = self.__analyze_restargets(statement["targetList"])
 
@@ -268,11 +261,11 @@ class Analyzer:
                     rc.set_table(t)
 
         if "whereClause" in statement.keys():
-            self.__analyze_whereclause(statement["whereClause"], tables, name)
+            self.__analyze_whereclause(statement["whereClause"], tables)
 
-        return node.Select(srccols, refcols, tables, name)
+        return node.Select(srccols, refcols, tables)
 
-    def __analyze_insert(self, stmt: dict[str, Any], name: str) -> node.Insert:
+    def __analyze_insert(self, stmt: dict[str, Any]) -> node.Insert:
         srccols, refcols = self.__analyze_restargets(stmt["cols"])
         rel = stmt["relation"]
         tgttbl: dict[str, Table] = {
@@ -285,9 +278,9 @@ class Analyzer:
             if "selectStmt" in stmt.keys()
             else None
         )
-        return node.Insert(srccols, refcols, tgttbl, subquery, name)
+        return node.Insert(srccols, refcols, tgttbl, subquery)
 
-    def __analyze_update(self, stmt: dict[str, Any], name: str) -> node.Update:
+    def __analyze_update(self, stmt: dict[str, Any]) -> node.Update:
         rel = stmt["relation"]
         tgttbl = {
             rel["alias"]["aliasname"]
@@ -299,7 +292,7 @@ class Analyzer:
 
         if "fromClause" in stmt.keys():
             for fc in stmt["fromClause"]:
-                self.__analyze_fromclause(fc, tables, name)
+                self.__analyze_fromclause(fc, tables)
 
         srccols, refcols = self.__analyze_restargets(stmt["targetList"])
 
@@ -311,6 +304,6 @@ class Analyzer:
                     rc.set_table(next(iter(tgttbl)))
 
         if "whereClause" in stmt.keys():
-            self.__analyze_whereclause(stmt["whereClause"], tables, name)
+            self.__analyze_whereclause(stmt["whereClause"], tables)
 
-        return node.Update(srccols, refcols, tgttbl, tables, name)
+        return node.Update(srccols, refcols, tgttbl, tables)

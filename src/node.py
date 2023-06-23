@@ -32,7 +32,7 @@ class Node(metaclass=abc.ABCMeta):
     def tgttblnm(self) -> str:
         raise NotImplementedError()
 
-    def summary(self) -> Summary:
+    def summary(self, sqlnm:str) -> Summary:
         tgttbl_name = self.tgttblnm()
 
         tgt_tbl: dict[str, dict[str, None]] = {tgttbl_name: {}}
@@ -42,7 +42,7 @@ class Node(metaclass=abc.ABCMeta):
         tbl_edges: dict[str, Tuple[str, str]] = {}
         ref_edges: dict[str, Tuple[str, str]] = {}
 
-        tbl_edges.setdefault(self.name + tgttbl_name, (self.name, tgttbl_name))
+        tbl_edges.setdefault(sqlnm + tgttbl_name, (sqlnm, tgttbl_name))
 
         f = self._flatten()
         for colname, srccols in f.srccols.items():
@@ -55,8 +55,8 @@ class Node(metaclass=abc.ABCMeta):
                 to = Column(tgttbl_name, colname)
 
                 col_edges.setdefault(str(from_) + str(to), (from_, to))
-                tbl_edges.setdefault(str(from_.table) + f.name, (from_.table, f.name))
-                tbl_edges.setdefault(f.name + str(to.table), (f.name, to.table))
+                tbl_edges.setdefault(str(from_.table) + sqlnm, (from_.table, sqlnm))
+                tbl_edges.setdefault(sqlnm + str(to.table), (sqlnm, to.table))
 
         for refcols in f.refcols.values():
             ref_tbls.update({rc.table for rc in refcols})
@@ -66,10 +66,10 @@ class Node(metaclass=abc.ABCMeta):
                 ref_tbls.add(ft)
 
         for rt in ref_tbls:
-            key = rt + self.name
-            ref_edges.setdefault(key, (rt, self.name))
+            key = rt + sqlnm
+            ref_edges.setdefault(key, (rt, sqlnm))
 
-        tbl_edges.setdefault(self.name + tgttbl_name, (self.name, tgttbl_name))
+        tbl_edges.setdefault(sqlnm + tgttbl_name, (sqlnm, tgttbl_name))
 
         return Summary(src_tbls, tgt_tbl, ref_tbls, col_edges, tbl_edges, ref_edges)
 
@@ -83,19 +83,14 @@ class Select(Node):
         srccols: dict[str, list[Column]],
         refcols: dict[str, list[Column]],
         tables: dict[str, table.Table] = {},
-        layer: int = 0,
-        name: str = "",
     ) -> None:
         self.srccols = srccols
         self.refcols = refcols
         self.tables = tables
-        self.layer = layer
-        self.name = name
 
     def format(self) -> dict[str, Any]:
         return {
             "statement": Select.STATEMENT,
-            "layer": self.layer,
             "srccols": {
                 colnm: [str(sc) for sc in srccols]
                 for colnm, srccols in self.srccols.items()
@@ -105,7 +100,6 @@ class Select(Node):
                 for colnm, refcols in self.refcols.items()
             },
             "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
-            "name": self.name,
         }
 
     def _trace_column(self, column: str, results: list[Column]) -> None:
@@ -145,13 +139,13 @@ class Select(Node):
         refs: list[str] = []
         self._trace_table(refs)
         f_tables = {ref: table.Table(ref) for ref in refs}
-        return Select(f_srccols, f_refcols, f_tables, name=self.name)
+        return Select(f_srccols, f_refcols, f_tables)
 
     def tgttblnm(self) -> str:
         return self.__class__.STATEMENT + "-" + str(self.__class__.__COUNT)
 
-    def summary(self) -> Summary:
-        return super().summary()
+    def summary(self, sqlnm:str) -> Summary:
+        return super().summary(sqlnm)
 
 
 class Insert(Node):
@@ -163,27 +157,24 @@ class Insert(Node):
         refcols: dict[str, list[Column]],
         tgttable: dict[str, table.Table],
         subquery: Select | None,
-        layer: int = 0,
-        name: str = "",
     ) -> None:
         self.srccols = srccols
         self.refcols = refcols
         self.tgttable = tgttable
         self.subquery = subquery
-        self.layer = layer
-        self.name = name
+
 
     def format(self) -> dict[str, Any]:
         return {
             "statement": Insert.STATEMENT,
-            "layer": self.layer,
+
             "tgtcols": {
                 colnm: [str(rc) for rc in refcols]
                 for colnm, refcols in self.srccols.items()
             },
             "tgttable": next(iter(self.tgttable)),
             "subquery": self.subquery.format() if self.subquery else "",
-            "name": self.name,
+
         }
 
     def _flatten(self) -> Insert:
@@ -201,10 +192,10 @@ class Insert(Node):
                 f_refcols = subquery.tables[refcol.table].ref.srccols[refcol.name]
             f_tgtcols[column] = f_refcols
 
-        return Insert(f_tgtcols, self.tgttable, subquery, 0, self.name)
+        return Insert(f_tgtcols, self.tgttable, subquery)
 
     def summary(
-        self,
+        self,sqlnm:str
     ) -> Summary:
         tgttbl_name = next(iter(self.tgttable.values())).ref
         tgt_tbl: dict[str, dict[str, None]] = {tgttbl_name: {}}
@@ -226,16 +217,16 @@ class Insert(Node):
                 src_tbls[refcol.table].setdefault(refcol.name)
 
                 col_edges.setdefault(str(from_) + str(to), (from_, to))
-                tbl_edges.setdefault(str(from_.table) + f.name, (from_.table, f.name))
-                tbl_edges.setdefault(f.name + str(to.table), (f.name, to.table))
+                tbl_edges.setdefault(str(from_.table) + sqlnm, (from_.table, sqlnm))
+                tbl_edges.setdefault(sqlnm + str(to.table), (sqlnm, to.table))
 
         for ft in f.subquery.tables:
             if ft not in src_tbls.keys():
                 ref_tbls.add(ft)
 
         for rt in ref_tbls:
-            key = rt + self.name
-            ref_edges.setdefault(key, (rt, self.name))
+            key = rt + sqlnm
+            ref_edges.setdefault(key, (rt, sqlnm))
 
         return Summary(
             src_tbls=src_tbls,
@@ -256,27 +247,23 @@ class Update(Node):
         refcols: dict[str, list[Column]],
         tgttable: dict[str, table.Table],
         tables: dict[str, table.Table] = {},
-        layer: int = 0,
-        name: str = "",
+
     ) -> None:
         self.srccols = srccols
         self.refcols = refcols
         self.tgttable = tgttable
         self.tables = tables
-        self.layer = layer
-        self.name = name
+
 
     def format(self) -> dict[str, Any]:
         return {
             "statement": Update.STATEMENT,
-            "layer": self.layer,
             "tgtcols": {
                 colnm: [str(rc) for rc in refcols]
                 for colnm, refcols in self.srccols.items()
             },
             "tgttable": next(iter(self.tgttable)),
             "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
-            "name": self.name,
         }
 
     def _trace_column(self, column: str, results: list[Column]) -> None:
@@ -326,10 +313,10 @@ class Update(Node):
                 self._trace_table(refs)
                 f_tables.update({ref: table.Table(ref) for ref in refs})
 
-        return Update(f_tgtcols, self.tgttable, f_tables, 0, self.name)
+        return Update(f_tgtcols, self.tgttable, f_tables)
 
     def tgttblnm(self) -> str:
         return next(iter(self.tgttable.values())).ref
 
-    def summary(self) -> Summary:
-        return super().summary()
+    def summary(self, sqlnm:str) -> Summary:
+        return super().summary(sqlnm)

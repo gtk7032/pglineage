@@ -22,18 +22,19 @@ class Lineage:
         self.__nodes: list[str] = []
 
     @staticmethod
-    def merge(nodes: list[node.Node]) -> Lineage:
+    def merge(nodes: list[Tuple[str, node.Node]]) -> Lineage:
         lineage = Lineage()
 
-        for nd in nodes:
-            lineage.__nodes.append(nd.name)
+        for _nd in nodes:
+            nm, nd = _nd[0], _nd[1]
+            lineage.__nodes.append(nm)
 
-            summary = nd.summary()
+            summary = nd.summary(nm)
 
             if (
                 not summary.src_tbls
                 and not summary.ref_tbls
-                and nd.STATEMENT == node.Select.STATEMENT
+                and isinstance(nd, node.Select)
             ):
                 continue
 
@@ -62,17 +63,17 @@ class Lineage:
         return lineage
 
     @staticmethod
-    def __sort(nodes: list[node.Node]) -> list[node.Node]:
+    def __sort(nodes: list[Tuple[str, node.Node]]) -> list[Tuple[str, node.Node]]:
         fst, snd = [], []
         for nd in nodes:
-            if nd.STATEMENT == node.Insert.STATEMENT:
+            if isinstance(nd[1], node.Insert):
                 fst.append(nd)
             else:
                 snd.append(nd)
         return fst + snd
 
     @staticmethod
-    def create(nodes: list[node.Node]) -> Lineage:
+    def create(nodes: list[Tuple[str, node.Node]]) -> Lineage:
         return Lineage.merge(Lineage.__sort(nodes))
 
     def draw(self, type: int) -> None:
