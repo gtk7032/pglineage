@@ -41,7 +41,7 @@ class Analyzer:
 
     def __analyze(self) -> list[Tuple[str, node.Node]]:
         nodes: list[Tuple[str, node.Node]] = []
-        for name, rawstmt in tqdm.tqdm(self.__rawstmts):
+        for name, rawstmt in tqdm.tqdm(self.__rawstmts, desc="analyzing"):
             match rawstmt:
                 case ast.SelectStmt():
                     analyze_stmt = self.__analyze_select

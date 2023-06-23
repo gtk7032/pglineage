@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Tuple
 
 import graphviz as gv
+import tqdm
 
 import node
 from column import Column
@@ -25,7 +26,7 @@ class Lineage:
     def merge(nodes: list[Tuple[str, node.Node]]) -> Lineage:
         lineage = Lineage()
 
-        for _nd in nodes:
+        for _nd in tqdm.tqdm(nodes, desc="creating"):
             nm, nd = _nd[0], _nd[1]
             lineage.__nodes.append(nm)
 
@@ -139,20 +140,36 @@ class Lineage:
             self.__dot.node(name, label=name, shape="note")
 
     def draw_1(self) -> None:
+        bar = tqdm.tqdm(total=3, desc="drawing")
         self._draw_srctables(1)
+        bar.update(1)
         self._draw_tgttables(1)
+        bar.update(1)
         self._draw_coledges()
+        bar.update(1)
 
     def draw_2(self) -> None:
+        bar = tqdm.tqdm(total=4, desc="drawing")
         self._draw_srctables(2)
+        bar.update(1)
         self._draw_tgttables(2)
+        bar.update(1)
         self._draw_nodes()
+        bar.update(1)
         self._draw_tbledges()
+        bar.update(1)
 
     def draw_3(self) -> None:
+        bar = tqdm.tqdm(total=6, desc="drawing")
         self._draw_srctables(3)
+        bar.update(1)
         self._draw_tgttables(3)
+        bar.update(1)
         self._draw_reftables()
+        bar.update(1)
         self._draw_nodes()
+        bar.update(1)
         self._draw_tbledges()
+        bar.update(1)
         self._draw_refedges()
+        bar.update(1)

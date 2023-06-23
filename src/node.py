@@ -5,7 +5,6 @@ from typing import Any, NamedTuple, Tuple
 
 import table
 from column import Column
-from node import Summary
 
 
 class Summary(NamedTuple):
@@ -32,7 +31,7 @@ class Node(metaclass=abc.ABCMeta):
     def tgttblnm(self) -> str:
         raise NotImplementedError()
 
-    def summary(self, sqlnm:str) -> Summary:
+    def summary(self, sqlnm: str) -> Summary:
         tgttbl_name = self.tgttblnm()
 
         tgt_tbl: dict[str, dict[str, None]] = {tgttbl_name: {}}
@@ -119,7 +118,9 @@ class Select(Node):
                 tbl.ref._trace_table(results)
         return
 
-    def __flatten_srccols(self, columns: dict[str, list[Column]]) -> dict[str, list[Column]]:
+    def __flatten_srccols(
+        self, columns: dict[str, list[Column]]
+    ) -> dict[str, list[Column]]:
         f_columns: dict[str, list[Column]] = {}
         for column, refcols in columns.items():
             f_refcols: list[Column] = []
@@ -144,7 +145,7 @@ class Select(Node):
     def tgttblnm(self) -> str:
         return self.__class__.STATEMENT + "-" + str(self.__class__.__COUNT)
 
-    def summary(self, sqlnm:str) -> Summary:
+    def summary(self, sqlnm: str) -> Summary:
         return super().summary(sqlnm)
 
 
@@ -163,18 +164,15 @@ class Insert(Node):
         self.tgttable = tgttable
         self.subquery = subquery
 
-
     def format(self) -> dict[str, Any]:
         return {
             "statement": Insert.STATEMENT,
-
             "tgtcols": {
                 colnm: [str(rc) for rc in refcols]
                 for colnm, refcols in self.srccols.items()
             },
             "tgttable": next(iter(self.tgttable)),
             "subquery": self.subquery.format() if self.subquery else "",
-
         }
 
     def _flatten(self) -> Insert:
@@ -194,9 +192,7 @@ class Insert(Node):
 
         return Insert(f_tgtcols, self.tgttable, subquery)
 
-    def summary(
-        self,sqlnm:str
-    ) -> Summary:
+    def summary(self, sqlnm: str) -> Summary:
         tgttbl_name = next(iter(self.tgttable.values())).ref
         tgt_tbl: dict[str, dict[str, None]] = {tgttbl_name: {}}
         src_tbls: dict[str, dict[str, None]] = {}
@@ -247,13 +243,11 @@ class Update(Node):
         refcols: dict[str, list[Column]],
         tgttable: dict[str, table.Table],
         tables: dict[str, table.Table] = {},
-
     ) -> None:
         self.srccols = srccols
         self.refcols = refcols
         self.tgttable = tgttable
         self.tables = tables
-
 
     def format(self) -> dict[str, Any]:
         return {
@@ -284,39 +278,38 @@ class Update(Node):
         return
 
     def __aa(self, columns: dict[str, list[Column]]) -> dict[str, list[Column]]:
+        pass
 
     def _flatten(self) -> Update:
         f_tgtcols: dict[str, list[Column]] = {}
         f_tables: dict[str, table.Table] = {}
 
         for column, refcols in self.srccols.items():
-        
-        
-                if self.tables:
-                    f_refcols: list[Column] = []
-                    for refcol in refcols:
-                        if refcol.table not in self.tables.keys():
-                            raise Exception()
-                        if isinstance(self.tables[refcol.table].ref, str):
-                            f_refcols.append(
-                                Column(self.tables[refcol.table].ref, refcol.name)
-                            )
-                        elif isinstance(self.tables[refcol.table].ref, Select):
-                            self.tables[refcol.table].ref._trace_column(
-                                refcol.name, f_refcols
-                            )
-                    f_tgtcols[column] = f_refcols
-                else:
-                    f_tgtcols[column] = refcols
+            if self.tables:
+                f_refcols: list[Column] = []
+                for refcol in refcols:
+                    if refcol.table not in self.tables.keys():
+                        raise Exception()
+                    if isinstance(self.tables[refcol.table].ref, str):
+                        f_refcols.append(
+                            Column(self.tables[refcol.table].ref, refcol.name)
+                        )
+                    elif isinstance(self.tables[refcol.table].ref, Select):
+                        self.tables[refcol.table].ref._trace_column(
+                            refcol.name, f_refcols
+                        )
+                f_tgtcols[column] = f_refcols
+            else:
+                f_tgtcols[column] = refcols
 
-                refs: list[str] = []
-                self._trace_table(refs)
-                f_tables.update({ref: table.Table(ref) for ref in refs})
+            refs: list[str] = []
+            self._trace_table(refs)
+            f_tables.update({ref: table.Table(ref) for ref in refs})
 
         return Update(f_tgtcols, self.tgttable, f_tables)
 
     def tgttblnm(self) -> str:
         return next(iter(self.tgttable.values())).ref
 
-    def summary(self, sqlnm:str) -> Summary:
+    def summary(self, sqlnm: str) -> Summary:
         return super().summary(sqlnm)
