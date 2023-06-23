@@ -21,6 +21,7 @@ class Lineage:
         self._ref_edges: dict[str, Tuple[str, str]] = {}
         self.__dot: gv.Digraph = None
         self.__nodes: list[str] = []
+        self.__bar: tqdm.tqdm = None
 
     @staticmethod
     def merge(nodes: list[Tuple[str, node.Node]]) -> Lineage:
@@ -81,14 +82,15 @@ class Lineage:
         self.__dot = gv.Digraph(format="png", filename="pglineage.gv")
         self.__dot.attr("graph", rankdir="LR")
         self.__dot.attr("node", fontname="MS Gothic")
+        self.__bar = None
 
         match type:
             case 1:
-                self.draw_1()
+                self.__draw_1()
             case 2:
-                self.draw_2()
+                self.__draw_2()
             case 3:
-                self.draw_3()
+                self.__draw_3()
 
         self.__dot.render("pglineage")
 
@@ -109,6 +111,8 @@ class Lineage:
             for tbl in tables.keys():
                 self.__dot.node(tbl, shape="cylinder", label=self.__out_table(tbl))
 
+        self.__bar.update(1)
+
     def _draw_srctables(self, type: int) -> None:
         self.__draw_tables(self._src_tbls, type)
 
@@ -118,6 +122,7 @@ class Lineage:
     def _draw_reftables(self) -> None:
         for rt in self._ref_tbls:
             self.__dot.node(rt, shape="cylinder", label=self.__out_table(rt))
+        self.__bar.update(1)
 
     def _draw_coledges(self) -> None:
         for edge in self._col_edges.values():
@@ -126,50 +131,41 @@ class Lineage:
                 edge[1].table + ":" + edge[1].name,
                 label="",
             )
+        self.__bar.update(1)
 
     def _draw_tbledges(self) -> None:
         for e in self._tbl_edges.values():
             self.__dot.edge(e[0], e[1])
+        self.__bar.update(1)
 
     def _draw_refedges(self) -> None:
         for re in self._ref_edges.values():
             self.__dot.edge(re[0], re[1], style="dashed")
+        self.__bar.update(1)
 
     def _draw_nodes(self) -> None:
         for name in self.__nodes:
             self.__dot.node(name, label=name, shape="note")
+        self.__bar.update(1)
 
-    def draw_1(self) -> None:
-        bar = tqdm.tqdm(total=3, desc="drawing")
+    def __draw_1(self) -> None:
+        self.__bar = tqdm.tqdm(total=3, desc="drawing")
         self._draw_srctables(1)
-        bar.update(1)
         self._draw_tgttables(1)
-        bar.update(1)
         self._draw_coledges()
-        bar.update(1)
 
-    def draw_2(self) -> None:
-        bar = tqdm.tqdm(total=4, desc="drawing")
+    def __draw_2(self) -> None:
+        self.__bar = tqdm.tqdm(total=4, desc="drawing")
         self._draw_srctables(2)
-        bar.update(1)
         self._draw_tgttables(2)
-        bar.update(1)
         self._draw_nodes()
-        bar.update(1)
         self._draw_tbledges()
-        bar.update(1)
 
-    def draw_3(self) -> None:
-        bar = tqdm.tqdm(total=6, desc="drawing")
+    def __draw_3(self) -> None:
+        self.__bar = tqdm.tqdm(total=6, desc="drawing")
         self._draw_srctables(3)
-        bar.update(1)
         self._draw_tgttables(3)
-        bar.update(1)
         self._draw_reftables()
-        bar.update(1)
         self._draw_nodes()
-        bar.update(1)
         self._draw_tbledges()
-        bar.update(1)
         self._draw_refedges()
-        bar.update(1)
