@@ -19,5 +19,5 @@ class Column:
     @staticmethod
     def create_from_list(ls: list[str]):
         name = ls[-1]
-        table = ls[-2] if len(ls) == 2 else ""
+        table = ls[-2] if len(ls) >= 2 else ""
         return Column(table, name)

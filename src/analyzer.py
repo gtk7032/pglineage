@@ -160,6 +160,7 @@ class Analyzer:
                             col = self.__collect_column(nt)
                             if col:
                                 refcols.append(col)
+
                 for next_tgt in self.__traverse("result", arg["result"], TYPES):
                     nt = next_tgt[1]
                     match nt.get("@", ""):
@@ -170,6 +171,7 @@ class Analyzer:
                             ):
                                 srccols.extend(sc)
                                 refcols.extend(rc)
+
                         case "ColumnRef":
                             col = self.__collect_column(nt)
                             if col:
@@ -179,11 +181,13 @@ class Analyzer:
         for next_tgt in self.__traverse("defresult", defresult, TYPES):
             nt = next_tgt[1]
             match nt.get("@", ""):
+
                 case "SelectStmt":
                     stmt = self.__analyze_select(nt)._flatten()
                     for sc, rc in zip(stmt.srccols.values(), stmt.refcols.values()):
                         srccols.extend(sc)
                         refcols.extend(rc)
+
                 case "ColumnRef":
                     col = self.__collect_column(nt)
                     if col:
@@ -222,10 +226,12 @@ class Analyzer:
         for rt in self.__traverse("ResTarget", tgt, TYPES):
             t = rt[1]
             match t.get("@", ""):
+
                 case "ColumnRef":
                     col = self.__collect_column(t)
                     if col:
                         srccols.append(col)
+
                 case "SelectStmt":
                     stmt = self.__analyze_select(t)._flatten()
                     for sc in stmt.srccols.values():
@@ -233,6 +239,7 @@ class Analyzer:
                     for rc in stmt.refcols.values():
                         refcols.extend(rc)
                     return
+                    
                 case "CaseExpr":
                     res = self.__extract_caseexpr(t)
                     srccols.extend(res[0])
