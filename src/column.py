@@ -12,6 +12,17 @@ class Column:
         else:
             return self.name
 
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, Column):
+            return False
+        return self.table == __o.table and self.name == __o.name
+
+    def __hash__(self) -> int:
+        res = 17
+        res = 31 * res + hash(self.table)
+        res = 31 * res + hash(self.name)
+        return res
+
     def set_table(self, table: str) -> None:
         if not self.table:
             self.table = table

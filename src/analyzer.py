@@ -181,7 +181,6 @@ class Analyzer:
         for next_tgt in self.__traverse("defresult", defresult, TYPES):
             nt = next_tgt[1]
             match nt.get("@", ""):
-
                 case "SelectStmt":
                     stmt = self.__analyze_select(nt)._flatten()
                     for sc, rc in zip(stmt.srccols.values(), stmt.refcols.values()):
@@ -193,17 +192,7 @@ class Analyzer:
                     if col:
                         srccols.append(col)
 
-        def uniq(cols):
-            u = set()
-            res = []
-            for c in cols:
-                s = str(c)
-                if s not in u:
-                    u.add(s)
-                    res.append(c)
-            return res
-
-        return uniq(srccols), uniq(refcols)
+        return list(set(srccols)), list(set(refcols))
 
     def __collect_column(self, tgt) -> Column | None:
         if "fields" not in tgt:
@@ -226,7 +215,6 @@ class Analyzer:
         for rt in self.__traverse("ResTarget", tgt, TYPES):
             t = rt[1]
             match t.get("@", ""):
-
                 case "ColumnRef":
                     col = self.__collect_column(t)
                     if col:
@@ -239,7 +227,7 @@ class Analyzer:
                     for rc in stmt.refcols.values():
                         refcols.extend(rc)
                     return
-                    
+
                 case "CaseExpr":
                     res = self.__extract_caseexpr(t)
                     srccols.extend(res[0])

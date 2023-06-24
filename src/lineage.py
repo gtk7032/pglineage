@@ -40,27 +40,20 @@ class Lineage:
             ):
                 continue
 
-            for tbl, cols in summary.src_tbls.items():
-                lineage.__src_tbls.setdefault(tbl, {})
-                lineage.__src_tbls[tbl].update(cols)
-
             tbl = next(iter(summary.tgt_tbl.keys()))
             lineage.__tgt_tbls.setdefault(tbl, {})
             lineage.__tgt_tbls[tbl].update(summary.tgt_tbl[tbl])
 
+            for tbl, cols in summary.src_tbls.items():
+                lineage.__src_tbls.setdefault(tbl, {})
+                lineage.__src_tbls[tbl].update(cols)
+
             for tbl in summary.ref_tbls:
-                if tbl not in lineage.__src_tbls:
-                    lineage.__ref_tbls.add(tbl)
+                lineage.__ref_tbls.add(tbl)
 
             lineage.__col_edges.update(summary.col_edges)
             lineage.__tbl_edges.update(summary.tbl_edges)
-            lineage.__ref_edges.update(
-                {
-                    k: v
-                    for k, v in summary.ref_edges.items()
-                    if k not in lineage.__tbl_edges
-                }
-            )
+            lineage.__ref_edges.update(summary.ref_edges)
 
         return lineage
 
@@ -113,15 +106,18 @@ class Lineage:
 
         self.__bar.update(1)
 
-    def _draw_srctables(self, type: int) -> None:
-        self.__draw_tables(self.__src_tbls, type)
-
     def _draw_tgttables(self, type: int) -> None:
         self.__draw_tables(self.__tgt_tbls, type)
 
+    def _draw_srctables(self, type: int) -> None:
+        tmp = {k: v for k, v in self.__src_tbls.items() if k not in self.__tgt_tbls}
+        self.__draw_tables(tmp, type)
+
     def _draw_reftables(self) -> None:
         for rt in self.__ref_tbls:
-            self.__dot.node(rt, shape="cylinder", label=self.__out_table(rt))
+            out = self.__out_table(rt)
+            if rt not in self.__tgt_tbls and rt not in self.__src_tbls:
+                self.__dot.node(rt, shape="cylinder", label=out)
         self.__bar.update(1)
 
     def _draw_coledges(self) -> None:
@@ -139,8 +135,9 @@ class Lineage:
         self.__bar.update(1)
 
     def _draw_refedges(self) -> None:
-        for re in self.__ref_edges.values():
-            self.__dot.edge(re[0], re[1], style="dashed")
+        for k, v in self.__ref_edges.items():
+            if k not in self.__tbl_edges:
+                self.__dot.edge(v[0], v[1], style="dashed")
         self.__bar.update(1)
 
     def _draw_nodes(self) -> None:
@@ -150,21 +147,21 @@ class Lineage:
 
     def __draw_1(self) -> None:
         self.__bar = tqdm.tqdm(total=3, desc="drawing")
-        self._draw_srctables(1)
         self._draw_tgttables(1)
+        self._draw_srctables(1)
         self._draw_coledges()
 
     def __draw_2(self) -> None:
         self.__bar = tqdm.tqdm(total=4, desc="drawing")
-        self._draw_srctables(2)
         self._draw_tgttables(2)
+        self._draw_srctables(2)
         self._draw_nodes()
         self._draw_tbledges()
 
     def __draw_3(self) -> None:
         self.__bar = tqdm.tqdm(total=6, desc="drawing")
-        self._draw_srctables(3)
         self._draw_tgttables(3)
+        self._draw_srctables(3)
         self._draw_reftables()
         self._draw_nodes()
         self._draw_tbledges()
