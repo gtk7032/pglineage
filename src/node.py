@@ -5,15 +5,16 @@ from typing import Any, NamedTuple, Tuple
 
 import table
 from column import Column
+from edge import ColEdge, TblEdge
 
 
 class Summary(NamedTuple):
     src_tbls: dict[str, dict[str, None]]
     tgt_tbl: dict[str, dict[str, None]]
     ref_tbls: set[str]
-    col_edges: dict[str, Tuple[Column, Column]]
-    tbl_edges: dict[str, Tuple[str, str]]
-    ref_edges: dict[str, Tuple[str, str]]
+    col_edges: set[ColEdge]
+    tbl_edges: set[TblEdge]
+    ref_edges: set[TblEdge]
 
 
 class Node(metaclass=abc.ABCMeta):
@@ -37,11 +38,11 @@ class Node(metaclass=abc.ABCMeta):
         tgt_tbl: dict[str, dict[str, None]] = {tgttbl_name: {}}
         src_tbls: dict[str, dict[str, None]] = {}
         ref_tbls: set[str] = set()
-        col_edges: dict[str, Tuple[Column, Column]] = {}
-        tbl_edges: dict[str, Tuple[str, str]] = {}
-        ref_edges: dict[str, Tuple[str, str]] = {}
+        col_edges: set[ColEdge] = set()
+        tbl_edges: set[TblEdge] = set()
+        ref_edges: set[TblEdge] = set()
 
-        tbl_edges.setdefault(sqlnm + tgttbl_name, (sqlnm, tgttbl_name))
+        tbl_edges.add(TblEdge(sqlnm, tgttbl_name))
 
         f = self._flatten()
         for colname, srccols in f.srccols.items():
@@ -50,12 +51,12 @@ class Node(metaclass=abc.ABCMeta):
                 src_tbls.setdefault(srccol.table, {})
                 src_tbls[srccol.table].setdefault(srccol.name)
 
-                from_ = srccol
-                to = Column(tgttbl_name, colname)
+                tail = srccol
+                head = Column(tgttbl_name, colname)
 
-                col_edges.setdefault(str(from_) + str(to), (from_, to))
-                tbl_edges.setdefault(str(from_.table) + sqlnm, (from_.table, sqlnm))
-                tbl_edges.setdefault(sqlnm + str(to.table), (sqlnm, to.table))
+                col_edges.add(ColEdge(tail, head))
+                tbl_edges.add(TblEdge(tail.table, sqlnm))
+                tbl_edges.add(TblEdge(sqlnm, head.table))
 
         for refcols in f.refcols.values():
             ref_tbls.update({rc.table for rc in refcols})
@@ -65,10 +66,9 @@ class Node(metaclass=abc.ABCMeta):
                 ref_tbls.add(ft)
 
         for rt in ref_tbls:
-            key = rt + sqlnm
-            ref_edges.setdefault(key, (rt, sqlnm))
+            ref_edges.add(TblEdge(rt, sqlnm))
 
-        tbl_edges.setdefault(sqlnm + tgttbl_name, (sqlnm, tgttbl_name))
+        tbl_edges.add(TblEdge(sqlnm, tgttbl_name))
 
         return Summary(src_tbls, tgt_tbl, ref_tbls, col_edges, tbl_edges, ref_edges)
 

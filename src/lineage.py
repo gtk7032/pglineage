@@ -6,7 +6,7 @@ import graphviz as gv
 import tqdm
 
 import node
-from column import Column
+from edge import ColEdge, TblEdge
 
 
 class Lineage:
@@ -16,9 +16,9 @@ class Lineage:
         self.__src_tbls: dict[str, dict[str, None]] = {}
         self.__tgt_tbls: dict[str, dict[str, None]] = {}
         self.__ref_tbls: set[str] = set()
-        self.__col_edges: dict[str, Tuple[Column, Column]] = {}
-        self.__tbl_edges: dict[str, Tuple[str, str]] = {}
-        self.__ref_edges: dict[str, Tuple[str, str]] = {}
+        self.__col_edges: set[ColEdge] = set()
+        self.__tbl_edges: set[TblEdge] = set()
+        self.__ref_edges: set[TblEdge] = set()
         self.__dot: gv.Digraph = None
         self.__nodes: list[str] = []
         self.__bar: tqdm.tqdm = None
@@ -121,23 +121,23 @@ class Lineage:
         self.__bar.update(1)
 
     def _draw_coledges(self) -> None:
-        for edge in self.__col_edges.values():
+        for edge in self.__col_edges:
             self.__dot.edge(
-                edge[0].table + ":" + edge[0].name,
-                edge[1].table + ":" + edge[1].name,
+                edge.tail.table + ":" + edge.tail.name,
+                edge.head.table + ":" + edge.head.name,
                 label="",
             )
         self.__bar.update(1)
 
     def _draw_tbledges(self) -> None:
-        for e in self.__tbl_edges.values():
-            self.__dot.edge(e[0], e[1])
+        for edge in self.__tbl_edges:
+            self.__dot.edge(edge.tail, edge.head)
         self.__bar.update(1)
 
     def _draw_refedges(self) -> None:
-        for k, v in self.__ref_edges.items():
-            if k not in self.__tbl_edges:
-                self.__dot.edge(v[0], v[1], style="dashed")
+        for edge in self.__ref_edges:
+            if edge not in self.__tbl_edges:
+                self.__dot.edge(edge.tail, edge.head, style="dashed")
         self.__bar.update(1)
 
     def _draw_nodes(self) -> None:
