@@ -7,7 +7,6 @@ from pglast import ast, parse_sql
 import node
 from column import Column
 from lineage import Lineage
-from table import Table
 
 
 class Analyzer:
@@ -53,26 +52,24 @@ class Analyzer:
         return nodes
 
     def __analyze_fromclause(
-        self, fc: dict[str, Any], tables: dict[str, Table]
+        self, fc: dict[str, Any], tables: dict[str, str | node.Select]
     ) -> None:
         if "@" not in fc.keys():
             return
 
         if fc["@"] == "RangeSubselect":
-            tables[fc["alias"]["aliasname"]] = Table(
-                self.__analyze_select(fc["subquery"]),
-            )
+            tables[fc["alias"]["aliasname"]] = self.__analyze_select(fc["subquery"])
 
         elif fc["@"] == "RangeVar":
             tblnm = fc["alias"]["aliasname"] if "alias" in fc.keys() else fc["relname"]
-            tables.setdefault(tblnm, Table(fc["relname"]))
+            tables.setdefault(tblnm, fc["relname"])
 
         for v in fc.values():
             if isinstance(v, dict):
                 self.__analyze_fromclause(v, tables)
 
     def __analyze_whereclause(
-        self, wc: dict[str, Any], tables: dict[str, Table]
+        self, wc: dict[str, Any], tables: dict[str, str | node.Select]
     ) -> None:
         if "@" not in wc.keys():
             return
@@ -235,11 +232,11 @@ class Analyzer:
                     return
 
     def __analyze_select(self, statement: dict[str, Any]) -> node.Select:
-        tables: dict[str, Table] = {}
+        tables: dict[str, str | node.Select] = {}
 
         if "withClause" in statement.keys():
             for cte in statement["withClause"]["ctes"]:
-                tables[cte["ctename"]] = Table(self.__analyze_select(cte["ctequery"]))
+                tables[cte["ctename"]] = self.__analyze_select(cte["ctequery"])
 
         if "fromClause" in statement.keys():
             for fc in statement["fromClause"]:
@@ -263,10 +260,10 @@ class Analyzer:
     def __analyze_insert(self, stmt: dict[str, Any]) -> node.Insert:
         srccols, refcols = self.__analyze_restargets(stmt["cols"])
         rel = stmt["relation"]
-        tgttbl: dict[str, Table] = {
+        tgttbl: dict[str, str | node.Select] = {
             rel["alias"]["aliasname"]
             if "alias" in rel.keys()
-            else rel["relname"]: Table(rel["relname"])
+            else rel["relname"]: rel["relname"]
         }
         subquery = (
             self.__analyze_select(stmt["selectStmt"])
@@ -280,10 +277,10 @@ class Analyzer:
         tgttbl = {
             rel["alias"]["aliasname"]
             if "alias" in rel.keys()
-            else rel["relname"]: Table(rel["relname"])
+            else rel["relname"]: rel["relname"]
         }
 
-        tables: dict[str, Table] = {}
+        tables: dict[str, str | node.Select] = {}
 
         if "fromClause" in stmt.keys():
             for fc in stmt["fromClause"]:
