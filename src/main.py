@@ -55,16 +55,16 @@ sql = "UPDATE animal SET " "gender = tbl.col " "FROM tbl;"
 # sql = "select case gender when gender = 1 then 2 else 3 end from tbl;"
 # sql = "select case when ( select gender from reftable where col = 'x')= 1 then 2 else 3 end from tbl;"
 # sql = "select case when col = 1 then col else col2 end from tbl;"
-# sql = (
-#     "UPDATE human "
-#     "SET gender = "
-#     "CASE gender "
-#     "    WHEN EXISTS("
-#     "    SELECT 1 FROM human2 WHERE age = 1"
-#     ") THEN '男' "
-#     "    ELSE '女' "
-#     "END;"
-# )
+sql = (
+    "UPDATE human "
+    "SET gender = "
+    "CASE "
+    "    WHEN EXISTS("
+    "    SELECT 1 FROM human2 WHERE age = 1"
+    ") THEN '男' "
+    "    ELSE '女' "
+    "END;"
+)
 
 # root = parse_sql(sql)
 # stmt = root[0].stmt
