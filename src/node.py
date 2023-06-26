@@ -121,18 +121,18 @@ class Select(Node):
     def __flatten_srccols(
         self, columns: dict[str, list[Column]]
     ) -> dict[str, list[Column]]:
-        f_columns: dict[str, list[Column]] = {}
-        for column, refcols in columns.items():
+        results: dict[str, list[Column]] = {}
+        for column, srccols in columns.items():
             f_refcols: list[Column] = []
-            for refcol in refcols:
+            for refcol in srccols:
                 if refcol.table not in self.tables:
                     raise Exception()
                 elif isinstance(self.tables[refcol.table], str):
                     f_refcols.append(Column(self.tables[refcol.table], refcol.name))
                 elif isinstance(self.tables[refcol.table], Select):
                     self.tables[refcol.table]._trace_column(refcol.name, f_refcols)
-            f_columns[column] = f_refcols
-        return f_columns
+            results[column] = f_refcols
+        return results
 
     def _flatten(self) -> Select:
         f_srccols = self.__flatten_srccols(self.srccols)
@@ -277,32 +277,35 @@ class Update(Node):
                 tbl._trace_table(results)
         return
 
-    def __aa(self, columns: dict[str, list[Column]]) -> dict[str, list[Column]]:
-        pass
+    def __flatten_srccols(
+        self, columns: dict[str, list[Column]]
+    ) -> dict[str, list[Column]]:
+        results: dict[str, list[Column]] = {}
+        for column, srccols in columns.items():
+            f_srccols: list[Column] = []
+            for srccol in srccols:
+                if (
+                    srccol.table not in self.tables
+                    and srccol.table not in self.tgttable
+                ):
+                    raise Exception()
+                if srccol.table in self.tgttable:
+                    f_srccols.append(Column(self.tgttable[srccol.table], srccol.name))
+                else:
+                    if isinstance(self.tables[srccol.table], str):
+                        f_srccols.append(Column(self.tables[srccol.table], srccol.name))
+                    elif isinstance(self.tables[srccol.table], Select):
+                        self.tables[srccol.table]._trace_column(srccol.name, f_srccols)
+            results[column] = f_srccols
+        return results
 
     def _flatten(self) -> Update:
-        f_tgtcols: dict[str, list[Column]] = {}
-        f_tables: dict[str, str | Select] = {}
-
-        for column, refcols in self.srccols.items():
-            if self.tables:
-                f_refcols: list[Column] = []
-                for refcol in refcols:
-                    if refcol.table not in self.tables.keys():
-                        raise Exception()
-                    if isinstance(self.tables[refcol.table], str):
-                        f_refcols.append(Column(self.tables[refcol.table], refcol.name))
-                    elif isinstance(self.tables[refcol.table], Select):
-                        self.tables[refcol.table]._trace_column(refcol.name, f_refcols)
-                f_tgtcols[column] = f_refcols
-            else:
-                f_tgtcols[column] = refcols
-
-            refs: list[str] = []
-            self._trace_table(refs)
-            f_tables.update({ref: ref for ref in refs})
-
-        return Update(f_tgtcols, self.tgttable, f_tables)
+        f_srccols = self.__flatten_srccols(self.srccols)
+        f_refcols = self.refcols
+        refs: list[str] = []
+        self._trace_table(refs)
+        f_tables = {ref: ref for ref in refs}
+        return Update(f_srccols, f_refcols, self.tgttable, f_tables)
 
     def tgttblnm(self) -> str:
         return next(iter(self.tgttable.values()))
