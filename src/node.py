@@ -5,11 +5,12 @@ from typing import Any, NamedTuple, Tuple
 
 from column import Column
 from edge import ColEdge, TblEdge
+from table import Table
 
 
 class Summary(NamedTuple):
-    src_tbls: dict[str, dict[str, None]]
-    tgt_tbl: dict[str, dict[str, None]]
+    src_tbls: dict[str, Table]
+    tgt_tbl: dict[str, Table]
     ref_tbls: set[str]
     col_edges: set[ColEdge]
     tbl_edges: set[TblEdge]
@@ -34,8 +35,8 @@ class Node(metaclass=abc.ABCMeta):
     def summary(self, sqlnm: str) -> Summary:
         tgttbl_name = self.tgttblnm()
 
-        tgt_tbl: dict[str, dict[str, None]] = {tgttbl_name: {}}
-        src_tbls: dict[str, dict[str, None]] = {}
+        tgt_tbl: dict[str, Table] = {tgttbl_name: Table(tgttbl_name)}
+        src_tbls: dict[str, Table] = {}
         ref_tbls: set[str] = set()
         col_edges: set[ColEdge] = set()
         tbl_edges: set[TblEdge] = set()
@@ -45,10 +46,10 @@ class Node(metaclass=abc.ABCMeta):
 
         f = self._flatten()
         for colname, srccols in f.srccols.items():
-            tgt_tbl[tgttbl_name].setdefault(colname, None)
+            tgt_tbl[tgttbl_name].add(colname)
             for srccol in srccols:
-                src_tbls.setdefault(srccol.table, {})
-                src_tbls[srccol.table].setdefault(srccol.name)
+                src_tbls.setdefault(srccol.table, Table(srccol.table))
+                src_tbls[srccol.table].add(srccol)
 
                 tail = srccol
                 head = Column(tgttbl_name, colname)

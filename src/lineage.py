@@ -7,14 +7,15 @@ import tqdm
 
 import node
 from edge import ColEdge, TblEdge
+from table import Table
 
 
 class Lineage:
     def __init__(
         self,
     ) -> None:
-        self.__src_tbls: dict[str, dict[str, None]] = {}
-        self.__tgt_tbls: dict[str, dict[str, None]] = {}
+        self.__src_tbls: dict[str, Table] = {}
+        self.__tgt_tbls: dict[str, Table] = {}
         self.__ref_tbls: set[str] = set()
         self.__col_edges: set[ColEdge] = set()
         self.__tbl_edges: set[TblEdge] = set()
@@ -27,11 +28,11 @@ class Lineage:
     def merge(nodes: list[Tuple[str, node.Node]]) -> Lineage:
         lineage = Lineage()
 
-        for _nd in tqdm.tqdm(nodes, desc="creating"):
+        for _nd in tqdm.tqdm(nodes, desc="creating", leave=False):
             nm, nd = _nd[0], _nd[1]
             lineage.__nodes.append(nm)
 
-            summary = nd.summary(nm)
+            summary: node.Summary = nd.summary(nm)
 
             if (
                 not summary.src_tbls
@@ -40,16 +41,15 @@ class Lineage:
             ):
                 continue
 
-            tbl = next(iter(summary.tgt_tbl.keys()))
-            lineage.__tgt_tbls.setdefault(tbl, {})
-            lineage.__tgt_tbls[tbl].update(summary.tgt_tbl[tbl])
+            nm = next(iter(summary.tgt_tbl.keys()))
+            lineage.__tgt_tbls.setdefault(nm, Table(nm))
+            lineage.__tgt_tbls[nm].update(summary.tgt_tbl[nm].columns)
 
-            for tbl, cols in summary.src_tbls.items():
-                lineage.__src_tbls.setdefault(tbl, {})
-                lineage.__src_tbls[tbl].update(cols)
+            for nm, tbl in summary.src_tbls.items():
+                lineage.__src_tbls.setdefault(nm, Table(nm))
+                lineage.__src_tbls[nm].update(tbl.columns)
 
-            for tbl in summary.ref_tbls:
-                lineage.__ref_tbls.add(tbl)
+            lineage.__ref_tbls.update(summary.ref_tbls)
 
             lineage.__col_edges.update(summary.col_edges)
             lineage.__tbl_edges.update(summary.tbl_edges)
@@ -90,27 +90,29 @@ class Lineage:
     def __out_table(self, tbl: str) -> str:
         return "" if tbl.startswith(node.Select.STATEMENT) else tbl
 
-    def __draw_tables(self, tables: dict[str, dict[str, None]], type: int) -> None:
+    def __draw_tables(self, tables: list[Table], type: int) -> None:
         if type == 1:
-            for tbl, flds in tables.items():
-                xlabel = self.__out_table(tbl)
+            for tbl in tables:
+                xlabel = self.__out_table(tbl.name)
                 label = ""
-                for fld in flds:
+                for col in tbl.columns:
                     sep = "|" if label else ""
-                    label += sep + "<" + fld + "> " + fld
-                self.__dot.node(tbl, shape="record", label=label, xlabel=xlabel)
+                    label += sep + "<" + col + "> " + col
+                self.__dot.node(tbl.name, shape="record", label=label, xlabel=xlabel)
 
         elif type in (2, 3):
-            for tbl in tables.keys():
-                self.__dot.node(tbl, shape="cylinder", label=self.__out_table(tbl))
+            for tbl in tables:
+                self.__dot.node(
+                    tbl.name, shape="cylinder", label=self.__out_table(tbl.name)
+                )
 
         self.__bar.update(1)
 
     def _draw_tgttables(self, type: int) -> None:
-        self.__draw_tables(self.__tgt_tbls, type)
+        self.__draw_tables(list(self.__tgt_tbls.values()), type)
 
     def _draw_srctables(self, type: int) -> None:
-        tmp = {k: v for k, v in self.__src_tbls.items() if k not in self.__tgt_tbls}
+        tmp = [t for t in self.__src_tbls.values() if t.name not in self.__tgt_tbls]
         self.__draw_tables(tmp, type)
 
     def _draw_reftables(self) -> None:
@@ -146,20 +148,20 @@ class Lineage:
         self.__bar.update(1)
 
     def __draw_1(self) -> None:
-        self.__bar = tqdm.tqdm(total=3, desc="drawing")
+        self.__bar = tqdm.tqdm(total=3, desc="drawing", leave=False)
         self._draw_tgttables(1)
         self._draw_srctables(1)
         self._draw_coledges()
 
     def __draw_2(self) -> None:
-        self.__bar = tqdm.tqdm(total=4, desc="drawing")
+        self.__bar = tqdm.tqdm(total=4, desc="drawing", leave=False)
         self._draw_tgttables(2)
         self._draw_srctables(2)
         self._draw_nodes()
         self._draw_tbledges()
 
     def __draw_3(self) -> None:
-        self.__bar = tqdm.tqdm(total=6, desc="drawing")
+        self.__bar = tqdm.tqdm(total=6, desc="drawing", leave=False)
         self._draw_tgttables(3)
         self._draw_srctables(3)
         self._draw_reftables()
