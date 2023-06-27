@@ -9,10 +9,7 @@ from analyzer import Analyzer
 from lineage import Lineage
 
 # sql = "select a, b, c from tbl;"
-# sql = (
-#     "insert into to_table as totbl (to_col1, to_col2) "
-#     "select from_table.from_col1, from_table.from_col2 from from_table, ref_table where from_table.col1 = ref_table.col1;"
-# )
+
 
 # sql = "SELECT s1.age * s2.age as al, s1.age_count * 5, 5, 'aa' FROM ( SELECT age, COUNT(age) as age_count FROM students as stu GROUP BY age ) as s1, s2;"
 # sql = (
@@ -41,7 +38,7 @@ from lineage import Lineage
 #     ");"
 # )
 
-sql = "UPDATE animal SET " "gender = tbl.col " "FROM tbl;"
+# sql = "UPDATE animal SET " "gender = tbl.col " "FROM tbl;"
 
 # sql = (
 #     "UPDATE human "
@@ -55,23 +52,30 @@ sql = "UPDATE animal SET " "gender = tbl.col " "FROM tbl;"
 # sql = "select case gender when gender = 1 then 2 else 3 end from tbl;"
 # sql = "select case when ( select gender from reftable where col = 'x')= 1 then 2 else 3 end from tbl;"
 # sql = "select case when col = 1 then col else col2 end from tbl;"
+# sql = (
+#     "UPDATE human "
+#     "SET gender = "
+#     "CASE "
+#     "    WHEN EXISTS("
+#     "    SELECT 1 FROM human2 WHERE age = 1"
+#     ") THEN '男' "
+#     "    ELSE '女' "
+#     "END;"
+# )
+
+
+# sql = "insert into to_table (to_col1, to_col2) VALUES 1, 2;"
+# sql = "select 5 * from_table1.from_col1, from_table2.from_col4 from from_table inner join from_table2 on from_table.from_col3 = from_table2.from_col4;"
 sql = (
-    "UPDATE human "
-    "SET gender = "
-    "CASE "
-    "    WHEN EXISTS("
-    "    SELECT 1 FROM human2 WHERE age = 1"
-    ") THEN '男' "
-    "    ELSE '女' "
-    "END;"
+    "insert into to_table as totbl (to_col1, to_col2) "
+    "select from_table.from_col1, from_table.from_col2 from from_table, ref_table where from_table.col1 = ref_table.col1;"
 )
+
 
 # root = parse_sql(sql)
 # stmt = root[0].stmt
 # pprint(stmt(skip_none=True))
 # exit()
-# sql = "insert into to_table (to_col1, to_col2)"
-# sql = "select 5 * from_table1.from_col1, from_table2.from_col4 from from_table inner join from_table2 on from_table.from_col3 = from_table2.from_col4;"
 
 # sql = (
 #     "insert into to_table (to_col1, to_col2)"

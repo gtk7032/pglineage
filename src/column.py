@@ -27,6 +27,10 @@ class Column:
         if not self.table:
             self.table = table
 
+    def replace_table(self, old: str, new: str) -> None:
+        if self.table == old:
+            self.table = new
+
     @staticmethod
     def create_from_list(ls: list[str]):
         name = ls[-1]

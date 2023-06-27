@@ -272,26 +272,32 @@ class Analyzer:
         return node.Select(srccols, refcols, tables | _tbls)
 
     def __analyze_insert(self, stmt: dict[str, Any]) -> node.Insert:
-        srccols, refcols = self.__analyze_restargets(stmt["cols"])
-        rel = stmt["relation"]
-        tgttbl: dict[str, str | node.Select] = {
-            rel["alias"]["aliasname"]
-            if "alias" in rel.keys()
-            else rel["relname"]: rel["relname"]
-        }
-        subquery = (
-            self.__analyze_select(stmt["selectStmt"])
-            if "selectStmt" in stmt.keys()
-            else None
-        )
-        return node.Insert(srccols, refcols, tgttbl, subquery)
+        tgttable = stmt["relation"]["relname"]
+
+        tgtcols, _, _ = self.__analyze_restargets(stmt["cols"])
+        for scs in tgtcols.values():
+            for sc in scs:
+                sc.set_table(tgttable)
+
+        srccols: dict[str, list[Column]] = {}
+        refcols: dict[str, list[Column]] = {}
+
+        if "selectStmt" in stmt.keys():
+            subquery = self.__analyze_select(stmt["selectStmt"])
+
+            for tgtcol, _srccols, _refcols in zip(
+                tgtcols, subquery.srccols.values(), subquery.refcols.values()
+            ):
+                srccols[tgtcol] = _srccols
+                refcols[tgtcol] = _refcols
+
+        return node.Insert(srccols, refcols, tgttable, subquery.tables)
 
     def __analyze_update(self, stmt: dict[str, Any]) -> node.Update:
         rel = stmt["relation"]
         tgttbl = {
-            rel["alias"]["aliasname"]
-            if "alias" in rel.keys()
-            else rel["relname"]: rel["relname"]
+            "alias": rel["alias"]["aliasname"] if "alias" in rel.keys() else "",
+            "name": rel["relname"],
         }
 
         tables: dict[str, str | node.Select] = {}
@@ -301,15 +307,17 @@ class Analyzer:
                 self.__analyze_fromclause(fc, tables)
 
         srccols, refcols, _tbls = self.__analyze_restargets(stmt["targetList"])
-        
+
         if not tables:
             for scs, rcs in zip(srccols.values(), refcols.values()):
                 for sc in scs:
-                    sc.set_table(next(iter(tgttbl)))
+                    sc.replace_table(tgttbl["alias"], tgttbl["name"])
                 for rc in rcs:
-                    rc.set_table(next(iter(tgttbl)))
+                    rc.replace_table(tgttbl["alias"], tgttbl["name"])
 
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
 
-        return node.Update(srccols, refcols, tgttbl, tables | _tbls)
+        return node.Update(
+            srccols, refcols, {tgttbl["alias"]: tgttbl["name"]}, tables | _tbls
+        )
