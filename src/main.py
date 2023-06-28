@@ -66,16 +66,24 @@ from lineage import Lineage
 
 # sql = "insert into to_table (to_col1, to_col2) VALUES 1, 2;"
 # sql = "select 5 * from_table1.from_col1, from_table2.from_col4 from from_table inner join from_table2 on from_table.from_col3 = from_table2.from_col4;"
+# sql = (
+#     "insert into to_table as totbl (to_col1, to_col2) "
+#     "select from_table.from_col1, from_table.from_col2 from from_table, ref_table where from_table.col1 = ref_table.col1;"
+# )
+# sql = (
+#     "INSERT INTO totbl (col1, col2) VALUES (1, CASE WHEN EXISTS (SELECT 1 FROM tbl2 WHERE tbl2.c = 1) THEN 3 ELSE 4 END);"
+# )
 sql = (
-    "insert into to_table as totbl (to_col1, to_col2) "
-    "select from_table.from_col1, from_table.from_col2 from from_table, ref_table where from_table.col1 = ref_table.col1;"
+    "INSERT INTO totbl (col1, col2) VALUES (1, CASE WHEN EXISTS (SELECT 1 FROM tbl2 WHERE tbl2.c = 1) THEN (SELECT tbl3.c FROM tbl3 LIMIT 1) ELSE 4 END);"
 )
+# sql = (
+#     "INSERT INTO totbl (col1, col2) VALUES (1, 2);"
+# )
 
-
-# root = parse_sql(sql)
-# stmt = root[0].stmt
-# pprint(stmt(skip_none=True))
-# exit()
+root = parse_sql(sql)
+stmt = root[0].stmt
+pprint(stmt(skip_none=True))
+exit()
 
 # sql = (
 #     "insert into to_table (to_col1, to_col2)"
