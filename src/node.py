@@ -32,6 +32,14 @@ class Node(metaclass=abc.ABCMeta):
     def tgttblnm(self) -> str:
         raise NotImplementedError()
 
+    def __trace_table(self, results: list[str]) -> None:
+        for tbl in self.tables.values():
+            if isinstance(tbl, str):
+                results.append(tbl)
+            elif isinstance(tbl, Select):
+                tbl.__trace_table(results)
+        return
+
     def summary(self, sqlnm: str) -> Summary:
         tgttbl_name = self.tgttblnm()
 
@@ -110,35 +118,27 @@ class Select(Node):
             elif isinstance(self.tables[refcol.table], Select):
                 self.tables[refcol.table].__trace_column(refcol.name, results)
 
-    def _trace_table(self, results: list[str]) -> None:
-        for tbl in self.tables.values():
-            if isinstance(tbl, str):
-                results.append(tbl)
-            elif isinstance(tbl, Select):
-                tbl._trace_table(results)
-        return
-
     def __flatten_srccols(
-        self, columns: dict[str, list[Column]]
+        self
     ) -> dict[str, list[Column]]:
         results: dict[str, list[Column]] = {}
-        for column, srccols in columns.items():
-            f_refcols: list[Column] = []
+        for column, srccols in self.srccols.items():
+            f_srccols: list[Column] = []
             for refcol in srccols:
                 if refcol.table not in self.tables:
                     raise Exception()
                 elif isinstance(self.tables[refcol.table], str):
-                    f_refcols.append(Column(self.tables[refcol.table], refcol.name))
+                    f_srccols.append(Column(self.tables[refcol.table], refcol.name))
                 elif isinstance(self.tables[refcol.table], Select):
-                    self.tables[refcol.table].__trace_column(refcol.name, f_refcols)
-            results[column] = f_refcols
+                    self.tables[refcol.table].__trace_column(refcol.name, f_srccols)
+            results[column] = f_srccols
         return results
 
     def _flatten(self) -> Select:
         f_srccols = self.__flatten_srccols(self.srccols)
         f_refcols = self.refcols
         refs: list[str] = []
-        self._trace_table(refs)
+        super().__trace_table(refs)
         f_tables = {ref: ref for ref in refs}
         return Select(f_srccols, f_refcols, f_tables)
 
@@ -177,15 +177,7 @@ class Insert(Node):
 
     def tgttblnm(self) -> str:
         return self.tgttable
-
-    def __trace_table(self, results: list[str]) -> None:
-        for tbl in self.tables.values():
-            if isinstance(tbl, str):
-                results.append(tbl)
-            elif isinstance(tbl, Select):
-                tbl._trace_table(results)
-        return
-
+    
     def __flatten_srccols(self) -> dict[str, list[Column]]:
         results: dict[str, list[Column]] = {}
         for column, srccols in self.srccols.items():
@@ -204,7 +196,7 @@ class Insert(Node):
         f_srccols = self.__flatten_srccols()
         f_refcols = self.refcols
         refs: list[str] = []
-        self.__trace_table(refs)
+        super().__trace_table(refs)
         f_tables = {ref: ref for ref in refs}
         return Insert(f_srccols, f_refcols, self.tgttable, f_tables)
 
@@ -238,19 +230,11 @@ class Update(Node):
             "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
         }
 
-    def __trace_table(self, results: list[str]) -> None:
-        for tbl in self.tables.values():
-            if isinstance(tbl, str):
-                results.append(tbl)
-            elif isinstance(tbl, Select):
-                tbl._trace_table(results)
-        return
-
     def __flatten_srccols(
-        self, columns: dict[str, list[Column]]
+        self
     ) -> dict[str, list[Column]]:
         results: dict[str, list[Column]] = {}
-        for column, srccols in columns.items():
+        for column, srccols in self.srccols.items():
             f_srccols: list[Column] = []
             for srccol in srccols:
                 if (
@@ -272,7 +256,7 @@ class Update(Node):
         f_srccols = self.__flatten_srccols(self.srccols)
         f_refcols = self.refcols
         refs: list[str] = []
-        self.__trace_table(refs)
+        super().__trace_table(refs)
         f_tables = {ref: ref for ref in refs}
         return Update(f_srccols, f_refcols, self.tgttable, f_tables)
 
