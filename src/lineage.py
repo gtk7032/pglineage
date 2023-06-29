@@ -29,7 +29,7 @@ class Lineage:
 
     @staticmethod
     def merge(nodes: list[Tuple[str, node.Node]]) -> Lineage:
-        __node_names: list[str] = []
+        __nodes: list[str] = []
         __tgt_tables_insert: dict[str, Table] = {}
         __tgt_tables_other: dict[str, Table] = {}
         __src_tables: dict[str, Table] = {}
@@ -38,9 +38,9 @@ class Lineage:
         __tbl_edges: set[TblEdge] = set()
         __ref_edges: set[TblEdge] = set()
 
-        for _nd in tqdm.tqdm(nodes, desc="creating", leave=False):
-            nm, nd = _nd[0], _nd[1]
-            __node_names.append(nm)
+        for nd in tqdm.tqdm(nodes, desc="creating", leave=False):
+            nm, nd = nd[0], nd[1]
+            __nodes.append(nm)
 
             summary: node.Summary = nd.summary(nm)
 
@@ -83,21 +83,21 @@ class Lineage:
         for t in __ref_tables:
             __tables.setdefault(t, Table(t))
 
-        __tbl_edges = {e for e in __ref_edges if e not in __tbl_edges}
+        __ref_edges = {e for e in __ref_edges if e not in __tbl_edges}
 
         return Lineage(
             __tables,
             __col_edges,
             __tbl_edges,
-            __tbl_edges,
-            __node_names,
+            __ref_edges,
+            __nodes,
         )
 
     @staticmethod
     def create(nodes: list[Tuple[str, node.Node]]) -> Lineage:
         return Lineage.merge(nodes)
 
-    def draw(self, type: int) -> None:
+    def draw(self) -> None:
         self.__bar = tqdm.tqdm(total=2, desc="drawing", leave=False)
         self.draw_column_level()
         self.__bar.update(1)
@@ -110,6 +110,8 @@ class Lineage:
         self.__dot.attr("node", fontname="MS Gothic")
 
         for tbl in self.__tables.values():
+            if not tbl.columns:
+                continue
             xlabel = self.__out_table(tbl.name)
             label = ""
             for col in tbl.columns:
