@@ -48,6 +48,8 @@ class Analyzer:
                     analyze_stmt = self.__analyze_insert
                 case ast.UpdateStmt():
                     analyze_stmt = self.__analyze_update
+                case ast.DeleteStmt():
+                    analyze_stmt = self.__analyze_delete
             nodes.append((name, analyze_stmt(rawstmt(skip_none=True))))
         return nodes
 
@@ -310,6 +312,7 @@ class Analyzer:
             for fc in statement["fromClause"]:
                 self.__analyze_fromclause(fc, tables)
 
+        srccols, refcols, _tbls = {}, {}, {}
         if "targetList" in statement.keys():
             srccols, refcols, _tbls = self.__analyze_restargets(statement["targetList"])
         elif "valuesLists" in statement.keys():
@@ -378,4 +381,20 @@ class Analyzer:
 
         return node.Update(
             srccols, refcols, {tgttbl["alias"]: tgttbl["name"]}, tables | _tbls
+        )
+
+    def __analyze_delete(self, stmt: dict[str, Any]) -> node.Delete:
+        rel = stmt["relation"]
+        tgttbl = {
+            "alias": rel["alias"]["aliasname"] if "alias" in rel.keys() else "",
+            "name": rel["relname"],
+        }
+
+        tables: dict[str, str | node.Select] = {}
+
+        if "whereClause" in stmt.keys():
+            self.__analyze_whereclause(stmt["whereClause"], tables)
+
+        return node.Delete(
+            {tgttbl["alias"]: tgttbl["name"]}, tables
         )

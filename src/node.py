@@ -261,3 +261,34 @@ class Update(Node):
 
     def summary(self, sqlnm: str) -> Summary:
         return super().summary(sqlnm)
+
+class Delete(Node):
+    STATEMENT = "Delete"
+
+    def __init__(
+        self,
+        tgttable: dict[str, str | Select],
+        tables: dict[str, str | Select],
+        srccols: dict[str, list[Column]] = {},
+        refcols: dict[str, list[Column]] = {},
+    ) -> None:
+        self.tgttable = tgttable
+        self.tables = tables
+        self.srccols = srccols
+        self.refcols = refcols
+        
+
+    def format(self)->dict[str, Any]:
+        return {}
+
+    def _flatten(self) -> Delete:
+        refs: list[str] = []
+        super().trace_table(refs)
+        f_tables = {ref: ref for ref in refs}
+        return Delete(self.tgttable, f_tables)
+
+    def tgttblnm(self) -> str:
+        return next(iter(self.tgttable.values()))
+
+    def summary(self, sqlnm: str) -> Summary:
+        return super().summary(sqlnm)

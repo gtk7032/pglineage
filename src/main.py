@@ -81,9 +81,10 @@ from lineage import Lineage
 sql1 = "SELECT col1, col2 FROM tbl1;"
 sql2 = "UPDATE tbl1 SET col3 = 33 WHERE col1 = 1;"
 sql3 = "INSERT INTO tbl1 (col1, col2, col3, col4) VALUES (1, 2, 3, 4);"
+sql4 = "DELETE FROM tbl4 as t WHERE t.col1 = (SELECT tbl.col FROM tbl WHERE tbl.col2 = ( SELECT FROM tbl2 WHERE tbl2.col = 3));"
 # sql = sql1 + sql2 + sql3
 
-# root = parse_sql(sql)
+# root = parse_sql(sql4)
 # stmt = root[0].stmt
 # pprint(stmt(skip_none=True))
 # exit()
@@ -121,9 +122,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     analyzer = Analyzer()
-    analyzer.load(sql1, "prs1")
-    analyzer.load(sql2, "prs2")
-    analyzer.load(sql3, "prs3")
+    # analyzer.load(sql1, "prs1")
+    # analyzer.load(sql2, "prs2")
+    # analyzer.load(sql3, "prs3")
+    analyzer.load(sql4, "qq")
     # for nd in nodes:
     #     pprint(nd.format())
     lineage = analyzer.analyze()
