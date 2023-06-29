@@ -97,15 +97,15 @@ class Lineage:
     def create(nodes: list[Tuple[str, node.Node]]) -> Lineage:
         return Lineage.merge(nodes)
 
-    def draw(self) -> None:
+    def draw(self, output: str = "result", format: str = "png") -> None:
         self.__bar = tqdm.tqdm(total=2, desc="drawing", leave=False)
-        self.draw_column_level()
+        self.__draw_column_level(output + ".clv", format)
         self.__bar.update(1)
-        self.draw_table_level()
+        self.__draw_table_level(output + ".tlv", format)
         self.__bar.update(1)
 
-    def draw_column_level(self) -> None:
-        self.__dot = gv.Digraph(format="png")
+    def __draw_column_level(self, output:str, format:str) -> None:
+        self.__dot = gv.Digraph(format=format)
         self.__dot.attr("graph", rankdir="LR")
         self.__dot.attr("node", fontname="MS Gothic")
 
@@ -125,10 +125,10 @@ class Lineage:
                 edge.head.table + ":" + edge.head.name,
             )
 
-        self.__dot.render("pglineage-column-level")
+        self.__dot.render(output)
 
-    def draw_table_level(self) -> None:
-        self.__dot = gv.Digraph(format="png")
+    def __draw_table_level(self, output:str, format:str) -> None:
+        self.__dot = gv.Digraph(format=format)
         self.__dot.attr("graph", rankdir="LR")
         self.__dot.attr("node", fontname="MS Gothic")
 
@@ -146,7 +146,7 @@ class Lineage:
         for edge in self.__ref_edges:
             self.__dot.edge(edge.tail, edge.head, style="dashed")
 
-        self.__dot.render("pglineage-table-level")
+        self.__dot.render(output)
 
     def __out_table(self, tbl: str) -> str:
         return "" if tbl.startswith(node.Select.STATEMENT) else tbl

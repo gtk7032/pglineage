@@ -70,13 +70,18 @@ from lineage import Lineage
 #     "insert into to_table as totbl (to_col1, to_col2) "
 #     "select from_table.from_col1, from_table.from_col2 from from_table, ref_table where from_table.col1 = ref_table.col1;"
 # )
-sql = (
-    "INSERT INTO totbl (col1, col2) VALUES (1, CASE WHEN EXISTS (SELECT 1 FROM tbl2 WHERE tbl2.c = 1) THEN 3 ELSE 4 END);"
-)
+# sql = (
+#     "INSERT INTO totbl (col1, col2) VALUES (1, CASE WHEN EXISTS (SELECT 1 FROM tbl2 WHERE tbl2.c = 1) THEN 3 ELSE 4 END);"
+# )
 # sql = (
 #     "INSERT INTO totbl (col1, col2) VALUES (1, CASE WHEN EXISTS (SELECT 1 FROM tbl2 WHERE tbl2.c = 1) THEN (SELECT tbl3.c FROM tbl3 LIMIT 1) ELSE 4 END);"
 # )
 # sql = "INSERT INTO totbl (col1, col2) VALUES (1, 2);"
+
+sql1 = "SELECT col1, col2 FROM tbl1;"
+sql2 = "UPDATE tbl1 SET col3 = 33 WHERE col1 = 1;"
+sql3 = "INSERT INTO tbl1 (col1, col2, col3, col4) VALUES (1, 2, 3, 4);"
+# sql = sql1 + sql2 + sql3
 
 # root = parse_sql(sql)
 # stmt = root[0].stmt
@@ -111,12 +116,15 @@ sql = (
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--type", choices=[1, 2, 3], type=int)
+    parser.add_argument("-o", "--outfile", type=str)
+    parser.add_argument("-f", "--format", type=str)
     args = parser.parse_args()
 
     analyzer = Analyzer()
-    analyzer.load(sql, "hello")
+    analyzer.load(sql1, "prs1")
+    analyzer.load(sql2, "prs2")
+    analyzer.load(sql3, "prs3")
     # for nd in nodes:
     #     pprint(nd.format())
     lineage = analyzer.analyze()
-    lineage.draw()
+    lineage.draw(args.outfile if args.outfile else "result")

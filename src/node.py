@@ -249,7 +249,7 @@ class Update(Node):
         return results
 
     def _flatten(self) -> Update:
-        f_srccols = self.__flatten_srccols(self.srccols)
+        f_srccols = self.__flatten_srccols()
         f_refcols = self.refcols
         refs: list[str] = []
         super().trace_table(refs)
