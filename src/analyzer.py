@@ -115,68 +115,59 @@ class Analyzer:
 
         return srcs, refs, tables
 
-    def __analyze_valueslist(self, valuelist: Tuple[dict[str, Any]])->Tuple[list[list[Column]], list[list[Column]], list[str]]:
-        srccols: list[list[Column]] = []
-        refcols: list[list[Column]] = []
-        tables: list[str] = []
+    def __analyze_valueslist(
+        self, valuelist: Tuple[dict[str, Any]]
+    ) -> Tuple[
+        dict[str, list[Column]], dict[str, list[Column]], dict[str, str | node.Select]
+    ]:
+        srccols: dict[str, list[Column]] = {}
+        refcols: dict[str, list[Column]] = {}
+        tables: dict[str, str | node.Select] = {}
 
-        for v in valuelist:
+        for i, v in enumerate(valuelist):
             if not isinstance(v, dict):
                 raise Exception()
             if "@" not in v.keys():
                 raise Exception()
-            
+
             scs: list[Column] = []
             rcs: list[Column] = []
             tbls: list[str] = []
             match v["@"]:
                 case "CaseExpr":
-                    scs, rcs, _tbls = self.__extract_caseexpr(v["CaseExpr"])
+                    scs, rcs, _tbls = self.__extract_caseexpr(v)
                     tbls = list(_tbls.values())
                 case "SelectStmt":
-                    res = self.__analyze_select(v["SelectStmt"])._flatten()
-                    scs, rcs, tbls = next(iter(res.srccols.values())), next(iter(res.refcols.values())), list(res.tables.values())
+                    res = self.__analyze_select(v)._flatten()
+                    scs, rcs, tbls = (
+                        next(iter(res.srccols.values())),
+                        next(iter(res.refcols.values())),
+                        list(res.tables.values()),
+                    )
                 case _:
                     pass
-            srccols.append(scs)
-            refcols.append(rcs)
-            tables.extend(tbls)
-            
+            srccols["column-" + str(i + 1)] = scs
+            refcols["column-" + str(i + 1)] = rcs
+            tables.update({t: t for t in tbls})
+
         return srccols, refcols, tables
 
     def __analyze_valueslists(
         self, valueslists: Tuple[Tuple[dict[str, Any]]]
     ) -> Tuple[
-        list[list[Column]], list[list[Column]], list[str]
+        dict[str, list[Column]], dict[str, list[Column]], dict[str, str | node.Select]
     ]:
-        srccols: list[list[Column]] = [[]]
-        refcols: list[list[Column]] = [[]]
-        tables: list[str] = []
-        
+        srccols: dict[str, list[Column]] = {}
+        refcols: dict[str, list[Column]] = {}
+        tables: dict[str, str | node.Select] = {}
+
         for vl in valueslists:
             scs, rcs, tbls = self.__analyze_valueslist(vl)
-            tables.extend(tbls)
-            for n in range(len(valueslists[0])):
-                srccols[n].extend(scs[n])
-                refcols[n].extend(rcs[n])
-        
-        def _sort(xs):
-            res = []
-            for x in xs:
-                if x not in res:
-                    res.append(x)
-            return res
-    
-        ss, rr = [], []
-        for s, r in zip(srccols, refcols):
-            ss.append(_sort(s))
-            rr.append(_sort(r))
-        
-        return ss, rr, list(set(tables))
+            tables.update(tbls)
+            srccols.update(scs)
+            refcols.update(rcs)
 
-
-
-       
+        return srccols, refcols, tables
 
     def __traverse(self, key, tgt, types: list[str]):
         match type(tgt):
@@ -322,8 +313,9 @@ class Analyzer:
         if "targetList" in statement.keys():
             srccols, refcols, _tbls = self.__analyze_restargets(statement["targetList"])
         elif "valuesLists" in statement.keys():
-            srccols, refcols, _tbls = self.__analyze_valueslists(statement["valuesLists"])
-            ???????
+            srccols, refcols, _tbls = self.__analyze_valueslists(
+                statement["valuesLists"]
+            )
 
         if len(tables.keys()) == 1:
             t = next(iter(tables))
@@ -356,11 +348,6 @@ class Analyzer:
         ):
             srccols[tgtcol] = _srccols
             refcols[tgtcol] = _refcols
-
-        if "valuesLists" in stmt.keys():
-            values = self.__analyze_valueslists(stmt["valuesLists"])
-
-        ????
 
         return node.Insert(srccols, refcols, tgttable, subquery.tables)
 

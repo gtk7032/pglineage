@@ -32,12 +32,12 @@ class Node(metaclass=abc.ABCMeta):
     def tgttblnm(self) -> str:
         raise NotImplementedError()
 
-    def __trace_table(self, results: list[str]) -> None:
+    def trace_table(self, results: list[str]) -> None:
         for tbl in self.tables.values():
             if isinstance(tbl, str):
                 results.append(tbl)
             elif isinstance(tbl, Select):
-                tbl.__trace_table(results)
+                tbl.trace_table(results)
         return
 
     def summary(self, sqlnm: str) -> Summary:
@@ -135,10 +135,10 @@ class Select(Node):
         return results
 
     def _flatten(self) -> Select:
-        f_srccols = self.__flatten_srccols(self.srccols)
+        f_srccols = self.__flatten_srccols()
         f_refcols = self.refcols
         refs: list[str] = []
-        super().__trace_table(refs)
+        super().trace_table(refs)
         f_tables = {ref: ref for ref in refs}
         return Select(f_srccols, f_refcols, f_tables)
 
@@ -196,7 +196,7 @@ class Insert(Node):
         f_srccols = self.__flatten_srccols()
         f_refcols = self.refcols
         refs: list[str] = []
-        super().__trace_table(refs)
+        super().trace_table(refs)
         f_tables = {ref: ref for ref in refs}
         return Insert(f_srccols, f_refcols, self.tgttable, f_tables)
 
@@ -256,7 +256,7 @@ class Update(Node):
         f_srccols = self.__flatten_srccols(self.srccols)
         f_refcols = self.refcols
         refs: list[str] = []
-        super().__trace_table(refs)
+        super().trace_table(refs)
         f_tables = {ref: ref for ref in refs}
         return Update(f_srccols, f_refcols, self.tgttable, f_tables)
 

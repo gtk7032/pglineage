@@ -73,17 +73,15 @@ from lineage import Lineage
 # sql = (
 #     "INSERT INTO totbl (col1, col2) VALUES (1, CASE WHEN EXISTS (SELECT 1 FROM tbl2 WHERE tbl2.c = 1) THEN 3 ELSE 4 END);"
 # )
-sql = (
-    "INSERT INTO totbl (col1, col2) VALUES (1, CASE WHEN EXISTS (SELECT 1 FROM tbl2 WHERE tbl2.c = 1) THEN (SELECT tbl3.c FROM tbl3 LIMIT 1) ELSE 4 END);"
-)
 # sql = (
-#     "INSERT INTO totbl (col1, col2) VALUES (1, 2);"
+#     "INSERT INTO totbl (col1, col2) VALUES (1, CASE WHEN EXISTS (SELECT 1 FROM tbl2 WHERE tbl2.c = 1) THEN (SELECT tbl3.c FROM tbl3 LIMIT 1) ELSE 4 END);"
 # )
+sql = "INSERT INTO totbl (col1, col2) VALUES (1, 2);"
 
-root = parse_sql(sql)
-stmt = root[0].stmt
-pprint(stmt(skip_none=True))
-exit()
+# root = parse_sql(sql)
+# stmt = root[0].stmt
+# pprint(stmt(skip_none=True))
+# exit()
 
 # sql = (
 #     "insert into to_table (to_col1, to_col2)"
