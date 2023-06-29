@@ -118,9 +118,7 @@ class Select(Node):
             elif isinstance(self.tables[refcol.table], Select):
                 self.tables[refcol.table].__trace_column(refcol.name, results)
 
-    def __flatten_srccols(
-        self
-    ) -> dict[str, list[Column]]:
+    def __flatten_srccols(self) -> dict[str, list[Column]]:
         results: dict[str, list[Column]] = {}
         for column, srccols in self.srccols.items():
             f_srccols: list[Column] = []
@@ -177,7 +175,7 @@ class Insert(Node):
 
     def tgttblnm(self) -> str:
         return self.tgttable
-    
+
     def __flatten_srccols(self) -> dict[str, list[Column]]:
         results: dict[str, list[Column]] = {}
         for column, srccols in self.srccols.items():
@@ -230,9 +228,7 @@ class Update(Node):
             "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
         }
 
-    def __flatten_srccols(
-        self
-    ) -> dict[str, list[Column]]:
+    def __flatten_srccols(self) -> dict[str, list[Column]]:
         results: dict[str, list[Column]] = {}
         for column, srccols in self.srccols.items():
             f_srccols: list[Column] = []
