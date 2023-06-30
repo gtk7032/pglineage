@@ -29,19 +29,18 @@ class Lineage:
 
     @staticmethod
     def merge(nodes: list[Tuple[str, node.Node]]) -> Lineage:
-        __nodes: list[str] = []
-        __tgt_tables_insert: dict[str, Table] = {}
-        __tgt_tables_other: dict[str, Table] = {}
-        __src_tables: dict[str, Table] = {}
-        __ref_tables: set[Table] = set()
-        __col_edges: set[ColEdge] = set()
-        __tbl_edges: set[TblEdge] = set()
-        __ref_edges: set[TblEdge] = set()
+        _nodes: list[str] = []
+        tgt_tables_insert: dict[str, Table] = {}
+        tgt_tables_other: dict[str, Table] = {}
+        src_tables: dict[str, Table] = {}
+        ref_tables: set[Table] = set()
+        col_edges: set[ColEdge] = set()
+        tbl_edges: set[TblEdge] = set()
+        ref_edges: set[TblEdge] = set()
 
         for nd in tqdm.tqdm(nodes, desc="creating", leave=False):
             nm, nd = nd[0], nd[1]
-            __nodes.append(nm)
-
+            
             summary: node.Summary = nd.summary(nm)
 
             if (
@@ -50,47 +49,49 @@ class Lineage:
                 and isinstance(nd, node.Select)
             ):
                 continue
+            
+            _nodes.append(nm)
 
             nm = next(iter(summary.tgt_tbl.keys()))
-            __tgt_tables = (
-                __tgt_tables_insert
+            tgt_tables = (
+                tgt_tables_insert
                 if isinstance(nd, node.Insert)
-                else __tgt_tables_other
+                else tgt_tables_other
             )
-            __tgt_tables.setdefault(nm, Table(nm))
-            __tgt_tables[nm].update(summary.tgt_tbl[nm].columns)
+            tgt_tables.setdefault(nm, Table(nm))
+            tgt_tables[nm].update(summary.tgt_tbl[nm].columns)
 
             for nm, tbl in summary.src_tbls.items():
-                __src_tables.setdefault(nm, Table(nm))
-                __src_tables[nm].update(tbl.columns)
+                src_tables.setdefault(nm, Table(nm))
+                src_tables[nm].update(tbl.columns)
 
-            __ref_tables.update(summary.ref_tbls)
-            __col_edges.update(summary.col_edges)
-            __tbl_edges.update(summary.tbl_edges)
-            __ref_edges.update(summary.ref_edges)
+            ref_tables.update(summary.ref_tbls)
+            col_edges.update(summary.col_edges)
+            tbl_edges.update(summary.tbl_edges)
+            ref_edges.update(summary.ref_edges)
 
-        __tables: dict[str, Table] = {}
-        __tables = __tgt_tables_other | __tgt_tables_insert
+        tables: dict[str, Table] = {}
+        tables = tgt_tables_other | tgt_tables_insert
 
-        for k, v in __src_tables.items():
-            if k in __tgt_tables_insert.keys():
+        for k, v in src_tables.items():
+            if k in tgt_tables_insert.keys():
                 continue
-            if k in __tables.keys():
-                __tables[k].update(v.columns)
+            if k in tables.keys():
+                tables[k].update(v.columns)
             else:
-                __tables[k] = v
+                tables[k] = v
 
-        for t in __ref_tables:
-            __tables.setdefault(t, Table(t))
+        for t in ref_tables:
+            tables.setdefault(t, Table(t))
 
-        __ref_edges = {e for e in __ref_edges if e not in __tbl_edges}
+        ref_edges = {e for e in ref_edges if e not in tbl_edges}
 
         return Lineage(
-            __tables,
-            __col_edges,
-            __tbl_edges,
-            __ref_edges,
-            __nodes,
+            tables,
+            col_edges,
+            tbl_edges,
+            ref_edges,
+            _nodes,
         )
 
     @staticmethod
@@ -109,7 +110,14 @@ class Lineage:
         self.__dot.attr("graph", rankdir="LR")
         self.__dot.attr("node", fontname="MS Gothic")
 
+        used_tables = set()
+        for e in self.__col_edges:
+            used_tables.add(e.head.table)
+            used_tables.add(e.tail.table)
+
         for tbl in self.__tables.values():
+            if tbl.name not in used_tables:
+                continue
             if not tbl.columns:
                 continue
             xlabel = self.__out_table(tbl.name)

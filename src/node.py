@@ -62,8 +62,13 @@ class Node(metaclass=abc.ABCMeta):
                 tail = srccol
                 head = Column(tgttbl_name, colname)
 
-                col_edges.add(ColEdge(tail, head))
-                tbl_edges.add(TblEdge(tail.table, sqlnm))
+                if tail != head:
+                    print(tail, head)
+                    col_edges.add(ColEdge(tail, head))
+    
+                if tail.table != tgttbl_name:
+                    tbl_edges.add(TblEdge(tail.table, sqlnm))
+    
                 tbl_edges.add(TblEdge(sqlnm, head.table))
 
         for refcols in f.refcols.values():
@@ -74,7 +79,8 @@ class Node(metaclass=abc.ABCMeta):
                 ref_tbls.add(ft)
 
         for rt in ref_tbls:
-            ref_edges.add(TblEdge(rt, sqlnm))
+            if rt != tgttbl_name:
+                ref_edges.add(TblEdge(rt, sqlnm))
 
         tbl_edges.add(TblEdge(sqlnm, tgttbl_name))
 
