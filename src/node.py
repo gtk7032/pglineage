@@ -63,7 +63,6 @@ class Node(metaclass=abc.ABCMeta):
                 head = Column(tgttbl_name, colname)
 
                 if tail != head:
-                    print(tail, head)
                     col_edges.add(ColEdge(tail, head))
     
                 if tail.table != tgttbl_name:
