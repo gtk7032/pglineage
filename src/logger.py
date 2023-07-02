@@ -17,7 +17,6 @@ class Logger:
     
     def __sort(self)->None:
         Logger.rows = dict(sorted(Logger.rows.items()))
-        print(Logger.rows)
     
     def write(self, path:str)->None:
         self.__sort()
@@ -25,4 +24,6 @@ class Logger:
             writer = csv.writer(f)
             writer.writerow(["name", "status", "query"])
             for r in Logger.rows.values():
-                writer.writerow([r.name,r.result,r.query[:100]+" ..."])
+                s = "".join(r.query[:80].splitlines())
+                s += " ..." if len(r.query) >= 80 else ""
+                writer.writerow([r.name,r.result,s])

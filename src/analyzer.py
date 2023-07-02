@@ -16,37 +16,21 @@ class Analyzer:
     def __init__(self) -> None:
         self.__stmts: list[dict[str, str]] = []
 
-    def load(self, sqls: list[str], name: str) -> None:
-        for sql in sqls:
-            self.__stmts.append({"name":name.lower(), "rawstmt":sql.lower()})
-
-    def __index(self) -> None:
-        tmp = []
-        for stmt1 in self.__stmts:
-            cnt = 0
-            for stmt2 in self.__stmts:
-                if stmt1 == stmt2:
-                    break
-                if stmt2["name"].startswith(stmt1["name"]):
-                    cnt += 1
-            if cnt:
-                x = {"name": stmt1["name"] + "-" + str(cnt + 1), "rawstmt": stmt1["rawstmt"]}
-            else:
-                x = {"name":stmt1["name"], "rawstmt":stmt1["rawstmt"]}
-            tmp.append(x)
-            logger.set(x["name"],Row(x["name"], "success", x["rawstmt"]))
-        self.__stmts = tmp
+    def load(self, sqls: list[Tuple[str, str]]) -> None:
+        for name, sql in sqls:
+            self.__stmts.append({"name":name, "rawstmt":sql})
+            logger.set(name,Row(name, "success", sql))
 
     def __parse(self)->None:
         for stmt in self.__stmts:
             try:
                 stmt["psdstmt"] = next(iter(parse_sql(stmt["rawstmt"]))).stmt
             except Exception:
+                stmt["psdstmt"] = ""
                 logger.set(stmt["name"],Row(stmt["name"], "failed", stmt["rawstmt"]))
                 continue
             
     def analyze(self) -> Lineage:
-        self.__index()
         self.__parse()
         return Lineage.create(self.__analyze())
 
@@ -62,6 +46,8 @@ class Analyzer:
                     analyze_stmt = self.__analyze_update
                 case ast.DeleteStmt():
                     analyze_stmt = self.__analyze_delete
+                case _:
+                    continue
             try:
                 nd = (stmt["name"], stmt["rawstmt"], analyze_stmt(stmt["psdstmt"](skip_none=True)))
                 nodes.append(nd)

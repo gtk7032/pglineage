@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Tuple
 
 import graphviz as gv
@@ -104,7 +105,7 @@ class Lineage:
     def create(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
         return Lineage.merge(nodes)
 
-    def draw(self, output: str = "result", format: str = "png") -> None:
+    def draw(self, output: str = "output/result", format: str = "png") -> None:
         self.__bar = tqdm.tqdm(total=2, desc="drawing", leave=False)
         self.__draw_column_level(output + ".clv", format)
         self.__bar.update(1)
