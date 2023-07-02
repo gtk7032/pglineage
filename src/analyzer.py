@@ -17,12 +17,12 @@ class Analyzer:
         self.__stmts: list[dict[str, str]] = []
 
     def load(self, sqls: list[Tuple[str, str]]) -> None:
-        for name, sql in sqls:
+        for name, sql in tqdm.tqdm(sqls,desc="loading", leave=False):
             self.__stmts.append({"name":name, "rawstmt":sql})
             logger.set(name,Row(name, "success", sql))
 
     def __parse(self)->None:
-        for stmt in self.__stmts:
+        for stmt in tqdm.tqdm(self.__stmts, desc="parsing", leave=False):
             try:
                 stmt["psdstmt"] = next(iter(parse_sql(stmt["rawstmt"]))).stmt
             except Exception:
