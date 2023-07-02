@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # analyzer.load(sql1, "prs1")
     # analyzer.load(sql2, "prs2")
     # analyzer.load(sql3, "prs3")
-    analyzer.load(sql4, "qq")
+    analyzer.load([sql4], "qq")
     # for nd in nodes:
     #     pprint(nd.format())
     lineage = analyzer.analyze()

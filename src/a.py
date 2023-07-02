@@ -30,7 +30,7 @@ for file in files:
     # print(x)
 
     for q in x:
-        # print(q)
+        print(q)
         try:
             analyzer.load(q, name)
         except:

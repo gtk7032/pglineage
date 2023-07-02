@@ -7,8 +7,10 @@ import tqdm
 
 import node
 from edge import ColEdge, TblEdge
+from logger import Logger, Row
 from table import Table
 
+logger = Logger()
 
 class Lineage:
     def __init__(
@@ -28,7 +30,7 @@ class Lineage:
         self.__bar: tqdm.tqdm = None
 
     @staticmethod
-    def merge(nodes: list[Tuple[str, node.Node]]) -> Lineage:
+    def merge(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
         _nodes: list[str] = []
         tgt_tables_insert: dict[str, Table] = {}
         tgt_tables_other: dict[str, Table] = {}
@@ -39,9 +41,13 @@ class Lineage:
         ref_edges: set[TblEdge] = set()
 
         for nd in tqdm.tqdm(nodes, desc="creating", leave=False):
-            nm, nd = nd[0], nd[1]
+            nm, stmt, nd = nd[0], nd[1], nd[2]
             
-            summary: node.Summary = nd.summary(nm)
+            try:
+                summary: node.Summary = nd.summary(nm)
+            except Exception:
+                logger.set(nm,Row(nm, "failed", stmt))
+                continue
 
             if (
                 not summary.src_tbls
@@ -95,7 +101,7 @@ class Lineage:
         )
 
     @staticmethod
-    def create(nodes: list[Tuple[str, node.Node]]) -> Lineage:
+    def create(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
         return Lineage.merge(nodes)
 
     def draw(self, output: str = "result", format: str = "png") -> None:
@@ -104,6 +110,7 @@ class Lineage:
         self.__bar.update(1)
         self.__draw_table_level(output + ".tlv", format)
         self.__bar.update(1)
+        logger.write(output+".log")
 
     def __draw_column_level(self, output:str, format:str) -> None:
         self.__dot = gv.Digraph(format=format)
