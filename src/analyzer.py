@@ -11,25 +11,25 @@ from logger import Logger, Row
 
 logger = Logger()
 
-class Analyzer:
 
+class Analyzer:
     def __init__(self) -> None:
         self.__stmts: list[dict[str, str]] = []
 
     def load(self, sqls: list[Tuple[str, str]]) -> None:
-        for name, sql in tqdm.tqdm(sqls,desc="loading", leave=False):
-            self.__stmts.append({"name":name, "rawstmt":sql})
-            logger.set(name,Row(name, "success", sql))
+        for name, sql in tqdm.tqdm(sqls, desc="loading", leave=False):
+            self.__stmts.append({"name": name, "rawstmt": sql})
+            logger.set(name, Row(name, "success", sql))
 
-    def __parse(self)->None:
+    def __parse(self) -> None:
         for stmt in tqdm.tqdm(self.__stmts, desc="parsing", leave=False):
             try:
                 stmt["psdstmt"] = next(iter(parse_sql(stmt["rawstmt"]))).stmt
             except Exception:
                 stmt["psdstmt"] = ""
-                logger.set(stmt["name"],Row(stmt["name"], "failed", stmt["rawstmt"]))
+                logger.set(stmt["name"], Row(stmt["name"], "failed", stmt["rawstmt"]))
                 continue
-            
+
     def analyze(self) -> Lineage:
         self.__parse()
         return Lineage.create(self.__analyze())
@@ -49,10 +49,14 @@ class Analyzer:
                 case _:
                     continue
             try:
-                nd = (stmt["name"], stmt["rawstmt"], analyze_stmt(stmt["psdstmt"](skip_none=True)))
+                nd = (
+                    stmt["name"],
+                    stmt["rawstmt"],
+                    analyze_stmt(stmt["psdstmt"](skip_none=True)),
+                )
                 nodes.append(nd)
             except Exception:
-                logger.set(stmt["name"],Row(stmt["name"], "failed", stmt["rawstmt"]))
+                logger.set(stmt["name"], Row(stmt["name"], "failed", stmt["rawstmt"]))
                 continue
         return nodes
 
@@ -269,6 +273,31 @@ class Analyzer:
 
         return Column.create_from_list(col) if col else None
 
+    def __analyze_multiassignref(
+        self, tgt: dict[str, Any]
+    ) -> Tuple[
+        dict[str, list[Column]], dict[str, list[Column]], dict[str, str | node.Select]
+    ]:
+        srccols: dict[str, list[Column]] = {}
+        refcols: dict[str, list[Column]] = {}
+
+        colno = int(tgt["colno"])
+        subselect = next(
+            iter(self.__traverse("source", tgt["source"], ["SelectStmt"]))
+        )[1]
+        subselect = self.__analyze_select(subselect)._flatten()
+
+        k = "column-" + str(colno)
+        for i, (scs, rcs) in enumerate(
+            zip(subselect.srccols.values(), subselect.refcols.values())
+        ):
+            if i + 1 == colno:
+                srccols[k] = scs
+                refcols[k] = rcs
+                break
+
+        return srccols, refcols, subselect.tables
+
     def __analyze_restarget(
         self,
         tgt: dict[str, Any],
@@ -279,10 +308,17 @@ class Analyzer:
         if not isinstance(tgt, dict):
             return None
 
-        TYPES = ["ColumnRef", "SelectStmt", "CaseExpr"]
+        TYPES = ["ColumnRef", "SelectStmt", "CaseExpr", "MultiAssignRef"]
         for rt in self.__traverse("ResTarget", tgt, TYPES):
             t = rt[1]
             match t.get("@", ""):
+                case "MultiAssignRef":
+                    scs, rcs, tbls = self.__analyze_multiassignref(t)
+                    srccols.extend(next(iter(scs.values())))
+                    refcols.extend(next(iter(rcs.values())))
+                    tables.update(tbls)
+                    return
+
                 case "ColumnRef":
                     col = self.__collect_column(t)
                     if col:
@@ -398,6 +434,4 @@ class Analyzer:
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
 
-        return node.Delete(
-            {tgttbl["alias"]: tgttbl["name"]}, tables
-        )
+        return node.Delete({tgttbl["alias"]: tgttbl["name"]}, tables)
