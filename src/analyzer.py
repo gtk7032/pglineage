@@ -282,11 +282,8 @@ class Analyzer:
         refcols: dict[str, list[Column]] = {}
 
         colno = int(tgt["colno"])
-        subselect = next(
-            iter(self.__traverse("source", tgt["source"], ["SelectStmt"]))
-        )[1]
-        subselect = self.__analyze_select(subselect)._flatten()
-
+        subselect = next(iter(self.__traverse("source", tgt["source"], ["SelectStmt"])))
+        subselect = self.__analyze_select(subselect[1])._flatten()
         k = "column-" + str(colno)
         for i, (scs, rcs) in enumerate(
             zip(subselect.srccols.values(), subselect.refcols.values())
@@ -323,6 +320,7 @@ class Analyzer:
                     col = self.__collect_column(t)
                     if col:
                         srccols.append(col)
+                    return
 
                 case "SelectStmt":
                     stmt = self.__analyze_select(t)._flatten()

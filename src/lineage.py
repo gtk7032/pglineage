@@ -13,6 +13,7 @@ from table import Table
 
 logger = Logger()
 
+
 class Lineage:
     def __init__(
         self,
@@ -43,11 +44,10 @@ class Lineage:
 
         for nd in tqdm.tqdm(nodes, desc="creating", leave=False):
             nm, stmt, nd = nd[0], nd[1], nd[2]
-            
             try:
                 summary: node.Summary = nd.summary(nm)
             except Exception:
-                logger.set(nm,Row(nm, "failed", stmt))
+                logger.set(nm, Row(nm, "failed", stmt))
                 continue
 
             if (
@@ -56,14 +56,12 @@ class Lineage:
                 and isinstance(nd, node.Select)
             ):
                 continue
-            
+
             _nodes.append(nm)
 
             nm = next(iter(summary.tgt_tbl.keys()))
             tgt_tables = (
-                tgt_tables_insert
-                if isinstance(nd, node.Insert)
-                else tgt_tables_other
+                tgt_tables_insert if isinstance(nd, node.Insert) else tgt_tables_other
             )
             tgt_tables.setdefault(nm, Table(nm))
             tgt_tables[nm].update(summary.tgt_tbl[nm].columns)
@@ -81,8 +79,8 @@ class Lineage:
         tables = tgt_tables_other | tgt_tables_insert
 
         for k, v in src_tables.items():
-            if k in tgt_tables_insert.keys():
-                continue
+            # if k in tgt_tables_insert.keys():
+            #     continue
             if k in tables.keys():
                 tables[k].update(v.columns)
             else:
@@ -111,9 +109,9 @@ class Lineage:
         self.__bar.update(1)
         self.__draw_table_level(output + ".tlv", format)
         self.__bar.update(1)
-        logger.write(output+".log")
+        logger.write(output + ".log")
 
-    def __draw_column_level(self, output:str, format:str) -> None:
+    def __draw_column_level(self, output: str, format: str) -> None:
         self.__dot = gv.Digraph(format=format)
         self.__dot.attr("graph", rankdir="LR")
         self.__dot.attr("node", fontname="MS Gothic")
@@ -143,7 +141,7 @@ class Lineage:
 
         self.__dot.render(output)
 
-    def __draw_table_level(self, output:str, format:str) -> None:
+    def __draw_table_level(self, output: str, format: str) -> None:
         self.__dot = gv.Digraph(format=format)
         self.__dot.attr("graph", rankdir="LR")
         self.__dot.attr("node", fontname="MS Gothic")

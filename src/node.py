@@ -64,10 +64,10 @@ class Node(metaclass=abc.ABCMeta):
 
                 if tail != head:
                     col_edges.add(ColEdge(tail, head))
-    
+
                 if tail.table != tgttbl_name:
                     tbl_edges.add(TblEdge(tail.table, sqlnm))
-    
+
                 tbl_edges.add(TblEdge(sqlnm, head.table))
 
         for refcols in f.refcols.values():
@@ -267,6 +267,7 @@ class Update(Node):
     def summary(self, sqlnm: str) -> Summary:
         return super().summary(sqlnm)
 
+
 class Delete(Node):
     STATEMENT = "Delete"
 
@@ -281,9 +282,8 @@ class Delete(Node):
         self.tables = tables
         self.srccols = srccols
         self.refcols = refcols
-        
 
-    def format(self)->dict[str, Any]:
+    def format(self) -> dict[str, Any]:
         return {}
 
     def _flatten(self) -> Delete:
