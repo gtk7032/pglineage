@@ -55,9 +55,11 @@ class Analyzer:
                     analyze_stmt(stmt["psdstmt"](skip_none=True)),
                 )
                 nodes.append(nd)
+
             except Exception:
                 logger.set(stmt["name"], Row(stmt["name"], "failed", stmt["rawstmt"]))
                 continue
+
         return nodes
 
     def __analyze_fromclause(
@@ -77,6 +79,15 @@ class Analyzer:
             if isinstance(v, dict):
                 self.__analyze_fromclause(v, tables)
 
+    def __merge_tables(
+        self, fst: dict[str, str | node.Select], snd: dict[str, str | node.Select]
+    ) -> None:
+        for sk, sv in snd.items():
+            if isinstance(sv, node.Select):
+                fst[sk] = sv
+            elif isinstance(sv, str):
+                fst.setdefault(sk, sv)
+
     def __analyze_whereclause(
         self, wc: dict[str, Any], tables: dict[str, str | node.Select]
     ) -> None:
@@ -84,7 +95,8 @@ class Analyzer:
             return
 
         if wc["@"] == "SelectStmt":
-            tables.update(self.__analyze_select(wc)._flatten().tables)
+            _tbls = self.__analyze_select(wc)._flatten().tables
+            self.__merge_tables(tables, _tbls)
             return
 
         for v in wc.values():
@@ -157,7 +169,7 @@ class Analyzer:
                     pass
             srccols["column-" + str(i + 1)] = scs
             refcols["column-" + str(i + 1)] = rcs
-            tables.update({t: t for t in tbls})
+            self.__merge_tables(tables, {t: t for t in tbls})
 
         return srccols, refcols, tables
 
@@ -172,7 +184,7 @@ class Analyzer:
 
         for vl in valueslists:
             scs, rcs, tbls = self.__analyze_valueslist(vl)
-            tables.update(tbls)
+            self.__merge_tables(tables, tbls)
             srccols.update(scs)
             refcols.update(rcs)
 
@@ -220,7 +232,7 @@ class Analyzer:
                             ):
                                 refcols.extend(sc)
                                 refcols.extend(rc)
-                            tables.update(stmt.tables)
+                            self.__merge_tables(tables, stmt.tables)
 
                         case "ColumnRef":
                             col = self.__collect_column(nt)
@@ -237,7 +249,7 @@ class Analyzer:
                             ):
                                 srccols.extend(sc)
                                 refcols.extend(rc)
-                            tables.update(stmt.tables)
+                            self.__merge_tables(tables, stmt.tables)
 
                         case "ColumnRef":
                             col = self.__collect_column(nt)
@@ -253,7 +265,7 @@ class Analyzer:
                     for sc, rc in zip(stmt.srccols.values(), stmt.refcols.values()):
                         srccols.extend(sc)
                         refcols.extend(rc)
-                    tables.update(stmt.tables)
+                    self.__merge_tables(tables, stmt.tables)
 
                 case "ColumnRef":
                     col = self.__collect_column(nt)
@@ -313,7 +325,7 @@ class Analyzer:
                     scs, rcs, tbls = self.__analyze_multiassignref(t)
                     srccols.extend(next(iter(scs.values())))
                     refcols.extend(next(iter(rcs.values())))
-                    tables.update(tbls)
+                    self.__merge_tables(tables, tbls)
                     return
 
                 case "ColumnRef":
@@ -328,14 +340,14 @@ class Analyzer:
                         srccols.extend(sc)
                     for rc in stmt.refcols.values():
                         refcols.extend(rc)
-                    tables.update(stmt.tables)
+                    self.__merge_tables(tables, stmt.tables)
                     return
 
                 case "CaseExpr":
                     res = self.__extract_caseexpr(t)
                     srccols.extend(res[0])
                     refcols.extend(res[1])
-                    tables.update(res[2])
+                    self.__merge_tables(tables, res[2])
                     return
 
     def __analyze_select(self, statement: dict[str, Any]) -> node.Select:
@@ -389,7 +401,13 @@ class Analyzer:
             srccols[tgtcol] = _srccols
             refcols[tgtcol] = _refcols
 
-        return node.Insert(srccols, refcols, tgttable, subquery.tables)
+        tables: dict[str, str | node.Select] = {}
+        if "withClause" in stmt.keys():
+            for cte in stmt["withClause"]["ctes"]:
+                tables[cte["ctename"]] = self.__analyze_select(cte["ctequery"])
+        self.__merge_tables(tables, subquery.tables)
+
+        return node.Insert(srccols, refcols, tgttable, tables)
 
     def __analyze_update(self, stmt: dict[str, Any]) -> node.Update:
         rel = stmt["relation"]
@@ -413,6 +431,10 @@ class Analyzer:
                 for rc in rcs:
                     rc.replace_table(tgttbl["alias"], tgttbl["name"])
 
+        if "withClause" in stmt.keys():
+            for cte in stmt["withClause"]["ctes"]:
+                tables[cte["ctename"]] = self.__analyze_select(cte["ctequery"])
+
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
 
@@ -431,5 +453,9 @@ class Analyzer:
 
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
+
+        if "withClause" in stmt.keys():
+            for cte in stmt["withClause"]["ctes"]:
+                tables[cte["ctename"]] = self.__analyze_select(cte["ctequery"])
 
         return node.Delete({tgttbl["alias"]: tgttbl["name"]}, tables)

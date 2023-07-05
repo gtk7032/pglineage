@@ -10,7 +10,7 @@ class FileReader:
             flags=re.IGNORECASE + re.DOTALL,
         )
         self.p2 = re.compile("-- .*?\n", flags=re.DOTALL)
-        self.p3 = re.compile("/\*.*\*/", flags=re.DOTALL)
+        self.p3 = re.compile("/\*.*?\*/", flags=re.DOTALL)
 
     def read(self, path: str) -> list[Tuple[str, str]]:
         with open(path, "r", encoding="utf-8") as f:
