@@ -116,7 +116,7 @@ class Select(Node):
 
     def _trace_column(self, tgtcol: str, _type: int, results: list[Column]) -> None:
         cols = (
-            self.srccols.get(tgtcol, []) if _type == 1 else self.refcols.get(tgtcol, [])
+            self.srccols[tgtcol] if _type == 1 else self.refcols[tgtcol]
         )
         for refcol in cols:
             if refcol.table not in self.tables.keys():

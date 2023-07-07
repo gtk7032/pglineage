@@ -9,7 +9,7 @@ class FileReader:
             "(?:with|select|update|insert|delete).+?;",
             flags=re.IGNORECASE + re.DOTALL,
         )
-        self.p2 = re.compile("-- .*?\n", flags=re.DOTALL)
+        self.p2 = re.compile("--.*")
         self.p3 = re.compile("/\*.*?\*/", flags=re.DOTALL)
 
     def read(self, path: str) -> list[Tuple[str, str]]:
