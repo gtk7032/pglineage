@@ -49,6 +49,9 @@ class Analyzer:
                 case _:
                     continue
             try:
+                # from pprint import pprint
+
+                # pprint(stmt["psdstmt"](skip_none=True))
                 nd = (
                     stmt["name"],
                     stmt["rawstmt"],
@@ -56,8 +59,11 @@ class Analyzer:
                 )
                 nodes.append(nd)
 
-            except Exception:
+            except Exception as e:
                 logger.set(stmt["name"], Row(stmt["name"], "failed", stmt["rawstmt"]))
+                # import traceback
+
+                # print(traceback.format_exc())
                 continue
 
         return nodes
@@ -350,41 +356,42 @@ class Analyzer:
                     self.__merge_tables(tables, res[2])
                     return
 
+    def __analyze_withclause(self, wc: dict[str, Any]) -> node.Select:
+        cte = self.__analyze_select(wc["ctequery"])
+        if "aliascolnames" in wc.keys():
+            cte.srccols = {
+                colalias["sval"]: srccols
+                for colalias, srccols in zip(wc["aliascolnames"], cte.srccols.values())
+            }
+            cte.refcols = {
+                colalias["sval"]: refcols
+                for colalias, refcols in zip(wc["aliascolnames"], cte.refcols.values())
+            }
+        return cte
+
     def __analyze_select(self, statement: dict[str, Any]) -> node.Select:
         tables: dict[str, str | node.Select] = {}
 
         if "withClause" in statement.keys():
-            _tbls = {}
+            tbls = {}
             for cte in statement["withClause"]["ctes"]:
-                _tbls[cte["ctename"]] = self.__analyze_select(cte["ctequery"])
-                _tbls[cte["ctename"]].srccols = {
-                    colalias["sval"]: srccols
-                    for colalias, srccols in zip(
-                        cte["aliascolnames"], _tbls[cte["ctename"]].srccols.values()
-                    )
-                }
-                _tbls[cte["ctename"]].refcols = {
-                    colalias["sval"]: refcols
-                    for colalias, refcols in zip(
-                        cte["aliascolnames"], _tbls[cte["ctename"]].refcols.values()
-                    )
-                }
-                self.__merge_tables(tables, _tbls)
+                tbls[cte["ctename"]] = self.__analyze_withclause(cte)
+            self.__merge_tables(tables, tbls)
 
         if "op" in statement.keys():
             if statement["op"]["name"] == "SETOP_UNION":
                 left = self.__analyze_select(statement["larg"])
                 right = self.__analyze_select(statement["rarg"])
                 scs = {
-                    "column-" + str(i + 1): list(set(lscs + rscs))
-                    for i, (lscs, rscs) in enumerate(
-                        zip(left.srccols.values(), right.srccols.values())
+                    lk if lk == rk else "column-" + str(i + 1): list(set(lv + rv))
+                    for i, ((lk, lv), (rk, rv)) in enumerate(
+                        zip(left.srccols.items(), right.srccols.items())
                     )
                 }
                 rcs = {
-                    "column-" + str(i + 1): list(set(lrcs + rrcs))
-                    for i, (lrcs, rrcs) in enumerate(
-                        zip(left.refcols.values(), right.refcols.values())
+                    lk if lk == rk else "column-" + str(i + 1): list(set(lv + rv))
+                    for i, ((lk, lv), (rk, rv)) in enumerate(
+                        zip(left.refcols.items(), right.refcols.items())
                     )
                 }
                 self.__merge_tables(left.tables, right.tables)
@@ -439,22 +446,10 @@ class Analyzer:
 
         tables: dict[str, str | node.Select] = {}
         if "withClause" in stmt.keys():
-            _tbls = {}
+            tbls = {}
             for cte in stmt["withClause"]["ctes"]:
-                _tbls[cte["ctename"]] = self.__analyze_select(cte["ctequery"])
-                _tbls[cte["ctename"]].srccols = {
-                    colalias: srccols
-                    for colalias, srccols in zip(
-                        cte["aliascolnames"], _tbls[cte["ctename"]].srccols.values()
-                    )
-                }
-                _tbls[cte["ctename"]].refcols = {
-                    colalias: refcols
-                    for colalias, refcols in zip(
-                        cte["aliascolnames"], _tbls[cte["ctename"]].refcols.values()
-                    )
-                }
-            self.__merge_tables(tables, _tbls)
+                tbls[cte["ctename"]] = self.__analyze_withclause(cte)
+            self.__merge_tables(tables, tbls)
 
         return node.Insert(srccols, refcols, tgttable, tables)
 
@@ -480,30 +475,18 @@ class Analyzer:
                 for rc in rcs:
                     rc.replace_table(tgttbl["alias"], tgttbl["name"])
 
+        self.__merge_tables(tables, _tbls)
+
         if "withClause" in stmt.keys():
-            _tbls = {}
+            tbls = {}
             for cte in stmt["withClause"]["ctes"]:
-                _tbls[cte["ctename"]] = self.__analyze_select(cte["ctequery"])
-                _tbls[cte["ctename"]].srccols = {
-                    colalias: srccols
-                    for colalias, srccols in zip(
-                        cte["aliascolnames"], _tbls[cte["ctename"]].srccols.values()
-                    )
-                }
-                _tbls[cte["ctename"]].refcols = {
-                    colalias: refcols
-                    for colalias, refcols in zip(
-                        cte["aliascolnames"], _tbls[cte["ctename"]].refcols.values()
-                    )
-                }
-            self.__merge_tables(tables, _tbls)
+                tbls[cte["ctename"]] = self.__analyze_withclause(cte)
+            self.__merge_tables(tables, tbls)
 
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
 
-        return node.Update(
-            srccols, refcols, {tgttbl["alias"]: tgttbl["name"]}, tables | _tbls
-        )
+        return node.Update(srccols, refcols, {tgttbl["alias"]: tgttbl["name"]}, tables)
 
     def __analyze_delete(self, stmt: dict[str, Any]) -> node.Delete:
         rel = stmt["relation"]
@@ -518,21 +501,9 @@ class Analyzer:
             self.__analyze_whereclause(stmt["whereClause"], tables)
 
         if "withClause" in stmt.keys():
-            _tbls = {}
+            tbls = {}
             for cte in stmt["withClause"]["ctes"]:
-                _tbls[cte["ctename"]] = self.__analyze_select(cte["ctequery"])
-                _tbls[cte["ctename"]].srccols = {
-                    colalias: srccols
-                    for colalias, srccols in zip(
-                        cte["aliascolnames"], _tbls[cte["ctename"]].srccols.values()
-                    )
-                }
-                _tbls[cte["ctename"]].refcols = {
-                    colalias: refcols
-                    for colalias, refcols in zip(
-                        cte["aliascolnames"], _tbls[cte["ctename"]].refcols.values()
-                    )
-                }
-            self.__merge_tables(tables, _tbls)
+                tbls[cte["ctename"]] = self.__analyze_withclause(cte)
+            self.__merge_tables(tables, tbls)
 
         return node.Delete({tgttbl["alias"]: tgttbl["name"]}, tables)
