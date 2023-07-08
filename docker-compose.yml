@@ -1,0 +1,12 @@
+version: '3'
+services:
+  pglineage:
+    container_name: pglineage
+    image: pglineage
+    restart: always
+    build: .
+    tty: true
+    volumes:
+      - ./src:/usr/local/pglineage/src
+      - ./resource:/usr/local/pglineage/resource
+      - ./output:/usr/local/pglineage/output

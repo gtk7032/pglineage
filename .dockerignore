@@ -1,0 +1,5 @@
+venv
+.git
+src/__pycache__
+output/*
+resource/.gitkeep
