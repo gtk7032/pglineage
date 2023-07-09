@@ -19,15 +19,18 @@ class Analyzer:
     def load(self, sqls: list[Tuple[str, str]]) -> None:
         for name, sql in tqdm.tqdm(sqls, desc="loading", leave=False):
             self.__stmts.append({"name": name, "rawstmt": sql})
-            logger.set(name, Row(name, "success", sql))
+            logger.set(name, Row(name, "success", "", sql))
 
     def __parse(self) -> None:
         for stmt in tqdm.tqdm(self.__stmts, desc="parsing", leave=False):
             try:
                 stmt["psdstmt"] = next(iter(parse_sql(stmt["rawstmt"]))).stmt
-            except Exception:
+            except Exception as e:
+                # import traceback
+                # print(traceback.format_exc())
                 stmt["psdstmt"] = ""
-                logger.set(stmt["name"], Row(stmt["name"], "failed", stmt["rawstmt"]))
+                logger.set(stmt["name"], Row(stmt["name"], "failed", str(e), stmt["rawstmt"]))
+
                 continue
 
     def analyze(self) -> Lineage:
@@ -50,7 +53,6 @@ class Analyzer:
                     continue
             try:
                 # from pprint import pprint
-
                 # pprint(stmt["psdstmt"](skip_none=True))
                 nd = (
                     stmt["name"],
@@ -60,9 +62,8 @@ class Analyzer:
                 nodes.append(nd)
 
             except Exception as e:
-                logger.set(stmt["name"], Row(stmt["name"], "failed", stmt["rawstmt"]))
+                logger.set(stmt["name"], Row(stmt["name"], "failed", str(e), stmt["rawstmt"]))
                 # import traceback
-
                 # print(traceback.format_exc())
                 continue
 
@@ -435,6 +436,7 @@ class Analyzer:
         srccols: dict[str, list[Column]] = {}
         refcols: dict[str, list[Column]] = {}
 
+        tables: dict[str, str | node.Select] = {}
         subquery = self.__analyze_select(stmt["selectStmt"])
         self.__merge_tables(tables, subquery.tables)
 
@@ -444,7 +446,6 @@ class Analyzer:
             srccols[tgtcol] = _srccols
             refcols[tgtcol] = _refcols
 
-        tables: dict[str, str | node.Select] = {}
         if "withClause" in stmt.keys():
             tbls = {}
             for cte in stmt["withClause"]["ctes"]:

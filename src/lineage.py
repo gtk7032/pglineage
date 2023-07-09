@@ -46,8 +46,8 @@ class Lineage:
             nm, stmt, nd = nd[0], nd[1], nd[2]
             try:
                 summary: node.Summary = nd.summary(nm)
-            except Exception:
-                logger.set(nm, Row(nm, "failed", stmt))
+            except Exception as e:
+                logger.set(nm, Row(nm, "failed", str(e), stmt))
                 continue
 
             if (

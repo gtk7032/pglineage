@@ -25,7 +25,7 @@ To use pglineage, follow these steps:
 
 ## Usage
 
-1. Execute the sample program, which targets the SQL contained in all files within the resource folder:
+1. See the [sample](src/sample.py), which targets the SQL contained in all files within the resource folder:
 
     ~~~bash
     docker exec -it pglineage python src/sample.py
@@ -34,6 +34,9 @@ To use pglineage, follow these steps:
 1. Verify that a data flow diagram has been generated in the output folder.
 
     A file name with "tlv" indicates the table level, while "clv" indicates the column level.
+
+## Notice
+Some grammars, such as UPSERT, are not supported at this time.
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
