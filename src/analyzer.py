@@ -396,7 +396,8 @@ class Analyzer:
                     )
                 }
                 self.__merge_tables(left.tables, right.tables)
-                return node.Select(scs, rcs, left.tables)
+                self.__merge_tables(tables, left.tables)
+                return node.Select(scs, rcs, tables)
 
         if "fromClause" in statement.keys():
             for fc in statement["fromClause"]:
@@ -450,6 +451,7 @@ class Analyzer:
             tbls = {}
             for cte in stmt["withClause"]["ctes"]:
                 tbls[cte["ctename"]] = self.__analyze_withclause(cte)
+
             self.__merge_tables(tables, tbls)
 
         return node.Insert(srccols, refcols, tgttable, tables)

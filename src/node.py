@@ -32,12 +32,13 @@ class Node(metaclass=abc.ABCMeta):
     def tgttblnm(self) -> str:
         raise NotImplementedError()
 
-    def trace_table(self, results: list[str]) -> None:
-        for tbl in self.tables.values():
+    def trace_table(self, results: list[str], alias="") -> None:
+        for als, tbl in self.tables.items():
             if isinstance(tbl, str):
-                results.append(tbl)
+                if tbl != alias: # with句中のSELECTでCTE名を参照されない場合
+                    results.append(tbl)
             elif isinstance(tbl, Select):
-                tbl.trace_table(results)
+                tbl.trace_table(results, als)
         return
 
     def summary(self, sqlnm: str) -> Summary:
@@ -56,6 +57,10 @@ class Node(metaclass=abc.ABCMeta):
         for colname, srccols in f.srccols.items():
             tgt_tbl[tgttbl_name].add(colname)
             for srccol in srccols:
+
+                if srccol.table not in f.tables: # with recursive
+                    continue
+
                 src_tbls.setdefault(srccol.table, Table(srccol.table))
                 src_tbls[srccol.table].add(srccol)
 
