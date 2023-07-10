@@ -35,7 +35,7 @@ class Node(metaclass=abc.ABCMeta):
     def trace_table(self, results: list[str], alias="") -> None:
         for als, tbl in self.tables.items():
             if isinstance(tbl, str):
-                if tbl != alias: # with句中のSELECTでCTE名を参照されない場合
+                if tbl != alias:  # with句中のSELECTでCTE名を参照されない場合
                     results.append(tbl)
             elif isinstance(tbl, Select):
                 tbl.trace_table(results, als)
@@ -57,8 +57,7 @@ class Node(metaclass=abc.ABCMeta):
         for colname, srccols in f.srccols.items():
             tgt_tbl[tgttbl_name].add(colname)
             for srccol in srccols:
-
-                if srccol.table not in f.tables: # with recursive
+                if srccol.table not in f.tables:  # with recursive
                     continue
 
                 src_tbls.setdefault(srccol.table, Table(srccol.table))
@@ -76,7 +75,7 @@ class Node(metaclass=abc.ABCMeta):
                 tbl_edges.add(TblEdge(sqlnm, head.table))
 
         for refcols in f.refcols.values():
-            ref_tbls.update({rc.table for rc in refcols})
+            ref_tbls.update({rc.table for rc in refcols if rc.table in f.tables})
 
         for ft in f.tables:
             if ft not in src_tbls.keys():
