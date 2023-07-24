@@ -122,7 +122,7 @@ class Select(Node):
         cols = self.srccols[tgtcol] if _type == 1 else self.refcols[tgtcol]
         for refcol in cols:
             if refcol.table not in self.tables.keys():
-                raise Exception()
+                continue
             if isinstance(self.tables[refcol.table], str):
                 results.append(Column(self.tables[refcol.table], refcol.name))
             elif isinstance(self.tables[refcol.table], Select):
@@ -135,7 +135,7 @@ class Select(Node):
             f_srccols: list[Column] = []
             for refcol in srccols:
                 if refcol.table not in self.tables:
-                    raise Exception()
+                    continue
                 elif isinstance(self.tables[refcol.table], str):
                     f_srccols.append(Column(self.tables[refcol.table], refcol.name))
                 elif isinstance(self.tables[refcol.table], Select):
@@ -196,7 +196,7 @@ class Insert(Node):
             f_srccols: list[Column] = []
             for srccol in srccols:
                 if srccol.table not in self.tables:
-                    raise Exception()
+                    continue
                 elif isinstance(self.tables[srccol.table], str):
                     f_srccols.append(Column(self.tables[srccol.table], srccol.name))
                 elif isinstance(self.tables[srccol.table], Select):
@@ -254,7 +254,7 @@ class Update(Node):
                     srccol.table not in self.tables
                     and srccol.table not in self.tgttable
                 ):
-                    raise Exception()
+                    continue
                 if srccol.table in self.tgttable:
                     f_srccols.append(Column(self.tgttable[srccol.table], srccol.name))
                 else:
