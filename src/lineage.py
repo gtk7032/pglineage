@@ -32,7 +32,7 @@ class Lineage:
         self.__bar: tqdm.tqdm = None
 
     @staticmethod
-    def merge(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
+    def __merge(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
         _nodes: list[str] = []
         tgt_tables_insert: dict[str, Table] = {}
         tgt_tables_other: dict[str, Table] = {}
@@ -101,7 +101,7 @@ class Lineage:
 
     @staticmethod
     def create(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
-        return Lineage.merge(nodes)
+        return Lineage.__merge(nodes)
 
     def draw(self, output: str = "output/result", format: str = "png") -> None:
         self.__bar = tqdm.tqdm(total=2, desc="drawing", leave=False)

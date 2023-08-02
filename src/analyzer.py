@@ -109,6 +109,9 @@ class Analyzer:
         for v in wc.values():
             if isinstance(v, dict):
                 self.__analyze_whereclause(v, tables)
+            elif isinstance(v, tuple):
+                for vv in v:
+                    self.__analyze_whereclause(vv, tables)
 
     def __analyze_restargets(
         self, restargets: list[dict[str, Any]]
