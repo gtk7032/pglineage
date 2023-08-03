@@ -1,13 +1,12 @@
 import builtins
 from typing import Any, Tuple
 
-import tqdm
-from pglast import ast, parse_sql
-
 import node
+import tqdm
 from column import Column
 from lineage import Lineage
 from logger import Logger, Row
+from pglast import ast, parse_sql
 
 logger = Logger()
 
@@ -68,7 +67,7 @@ class Analyzer:
                 continue
 
         return nodes
-
+    
     def __analyze_fromclause(
         self, fc: dict[str, Any], tables: dict[str, str | node.Select]
     ) -> None:
@@ -86,6 +85,20 @@ class Analyzer:
             if isinstance(v, dict):
                 self.__analyze_fromclause(v, tables)
 
+    def __analyze_usingclause(self, uc: dict[str, Any], tables: dict[str, str | node.Select])->None:
+        if "@" not in uc.keys():
+            return
+        
+        match uc["@"]:
+            case "RangeVar":
+                alias = uc["alias"]["aliasname"] if "alias" in uc.keys() else ""
+                relname = uc["relname"]
+                tables[alias if alias else relname] = relname
+            case "RangeSubselect":
+                alias = uc["alias"]["aliasname"]
+                tables[alias] = self.__analyze_select(uc["subquery"])
+        return
+    
     def __merge_tables(
         self, fst: dict[str, str | node.Select], snd: dict[str, str | node.Select]
     ) -> None:
@@ -505,6 +518,10 @@ class Analyzer:
 
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
+
+        if "usingClause" in stmt.keys():
+            for uc in stmt["usingClause"]:
+                self.__analyze_usingclause(uc, tables)
 
         if "withClause" in stmt.keys():
             tbls = {}
