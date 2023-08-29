@@ -1,14 +1,9 @@
 # pglineage
 
 ## Overview
-- pglineage is a tool to create data flow diagrams for PostgreSQL by analyzing SQL
-- [sample queries](resource) generate the following diagrams
-    - table level    
-        ![](output/result.tlv.png)
-    - column level    
-        ![](output/result.clv.png)
-
-## Installation
+pglineage is a tool to create data flow diagrams for PostgreSQL by analyzing SQL.
+![](sample.jpg) 
+## Setup
 To use pglineage, follow these steps:
 
 1. Download:
@@ -28,17 +23,14 @@ To use pglineage, follow these steps:
     docker-compose up -d
     ~~~
 
-## Usage
+## Example Usage
 
-1. See the [sample](src/sample.py), which targets the SQL contained in all files within the resource folder:
+See the [sample program](src/sample.py), which targets the SQL contained in all files within the resource folder.
 
-    ~~~bash
-    docker exec -it pglineage python src/sample.py
-    ~~~ 
-
-1. Verify that a data flow diagram has been generated in the output folder.
-
-    A file name with "tlv" indicates the table level, while "clv" indicates the column level.
+Running the sample program with the following command generates the diagrams in the output folder.
+~~~bash
+docker exec -it pglineage python src/sample.py
+~~~ 
 
 ## Notice
 Some grammars, such as UPSERT, are not supported at this time.
