@@ -16,7 +16,8 @@ RUN groupadd -g "$GID" "$GROUPNAME" \
     && pip install --no-cache-dir \
     graphviz==0.20.1  \
     pglast==5.1 \
-    tqdm==4.65.0
+    tqdm==4.65.0 \
+    chardet==5.2.0
 
 USER "$USERNAME"
 WORKDIR "$APP_DIR"

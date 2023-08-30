@@ -1,6 +1,8 @@
 import os
 import re
-from typing import Tuple
+from typing import Any, Tuple
+
+from chardet import detect
 
 
 class FileReader:
@@ -12,8 +14,14 @@ class FileReader:
         self.p2 = re.compile("--.*")
         self.p3 = re.compile("/\*.*?\*/", flags=re.DOTALL)
 
+    def detect_enc(self, path: str) -> dict[str, Any]:
+        with open(path, "rb") as f:
+            b = f.read(path)
+            return detect(b)
+
     def read(self, path: str) -> list[Tuple[str, str]]:
-        with open(path, "r", encoding="utf-8") as f:
+        enc = self.detect_enc(path)
+        with open(path, "r", encoding=enc["encoding"]) as f:
             s = f.read().lower()
         s = self.p2.sub("", s)
         s = self.p3.sub("", s)

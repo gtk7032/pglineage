@@ -9,7 +9,12 @@ reader = FileReader()
 analyzer = Analyzer()
 
 for file in files:
-    analyzer.load(reader.read(file))
+    try:
+        sqls = reader.read(file)
+    except Exception:
+        print("file reading error : " + file)
+        continue
+    analyzer.load(sqls)
 
 lineage = analyzer.analyze()
 lineage.draw(output="output/result", format="png")
