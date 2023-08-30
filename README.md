@@ -2,7 +2,11 @@
 
 ## Overview
 pglineage is a tool to create data flow diagrams for PostgreSQL by analyzing SQL.
-![](sample.jpg) 
+
+<div align="center">
+<img src="sample.jpg" width="75%">
+</div>
+
 ## Setup
 To use pglineage, follow these steps:
 
