@@ -16,7 +16,7 @@ class FileReader:
 
     def detect_enc(self, path: str) -> dict[str, Any]:
         with open(path, "rb") as f:
-            b = f.read(path)
+            b = f.read()
             return detect(b)
 
     def read(self, path: str) -> list[Tuple[str, str]]:

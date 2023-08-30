@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Tuple
 
 import graphviz as gv
@@ -101,11 +102,30 @@ class Lineage:
     def create(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
         return Lineage.__merge(nodes)
 
-    def draw(self, output: str = "output/result", format: str = "png") -> None:
+    def bundled(self) -> Lineage:
+        ptrn = re.compile("-[0-9]+$")
+
+        def f1(s: str) -> str:
+            return s if s.startswith(node.Select.STATEMENT) else re.sub(ptrn, "", s)
+
+        def f2(edge: TblEdge) -> TblEdge:
+            return ColEdge(f1(edge.tail), f1(edge.head))
+
+        nds = {f1(nd) for nd in self.__nodes}
+        tes = {f2(te) for te in self.__tbl_edges}
+        res = {f2(_re) for _re in self.__ref_edges}
+        return Lineage(self.__tables, self.__col_edges, tes, res, nds)
+
+    def draw(
+        self, output: str = "output/result", format: str = "png", bundled=True
+    ) -> None:
         self.__bar = tqdm.tqdm(total=2, desc="drawing", leave=False)
         self.__draw_column_level(output + ".clv", format)
         self.__bar.update(1)
-        self.__draw_table_level(output + ".tlv", format)
+        if bundled:
+            self.bundled().__draw_table_level(output + ".tlv", format)
+        else:
+            self.__draw_table_level(output + ".tlv", format)
         self.__bar.update(1)
         logger.write(output + ".log")
 
@@ -146,11 +166,13 @@ class Lineage:
 
         for tbl in self.__tables.values():
             self.__dot.node(
-                tbl.name, shape="cylinder", label=self.__out_table(tbl.name)
+                tbl.name,
+                shape="cylinder",
+                label=self.__out_table(tbl.name),
             )
 
         for name in self.__nodes:
-            self.__dot.node(name, label=name, shape="note")
+            self.__dot.node(name, label=self.__out_table(name), shape="note")
 
         for edge in self.__tbl_edges:
             self.__dot.edge(edge.tail, edge.head)

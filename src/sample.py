@@ -17,4 +17,4 @@ for file in files:
     analyzer.load(sqls)
 
 lineage = analyzer.analyze()
-lineage.draw(output="output/result", format="png")
+lineage.draw(output="output/result", format="png", bundled=True)
