@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, NamedTuple, Tuple
+from typing import Any, NamedTuple
 
 from column import Column
 from edge import ColEdge, TblEdge

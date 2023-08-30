@@ -28,8 +28,9 @@ class Analyzer:
                 # import traceback
                 # print(traceback.format_exc())
                 stmt["psdstmt"] = ""
-                logger.set(stmt["name"], Row(stmt["name"], "failed", str(e), stmt["rawstmt"]))
-
+                logger.set(
+                    stmt["name"], Row(stmt["name"], "failed", str(e), stmt["rawstmt"])
+                )
                 continue
 
     def analyze(self) -> Lineage:
@@ -61,13 +62,15 @@ class Analyzer:
                 nodes.append(nd)
 
             except Exception as e:
-                logger.set(stmt["name"], Row(stmt["name"], "failed", str(e), stmt["rawstmt"]))
+                logger.set(
+                    stmt["name"], Row(stmt["name"], "failed", str(e), stmt["rawstmt"])
+                )
                 # import traceback
                 # print(traceback.format_exc())
                 continue
 
         return nodes
-    
+
     def __analyze_fromclause(
         self, fc: dict[str, Any], tables: dict[str, str | node.Select]
     ) -> None:
@@ -85,10 +88,12 @@ class Analyzer:
             if isinstance(v, dict):
                 self.__analyze_fromclause(v, tables)
 
-    def __analyze_usingclause(self, uc: dict[str, Any], tables: dict[str, str | node.Select])->None:
+    def __analyze_usingclause(
+        self, uc: dict[str, Any], tables: dict[str, str | node.Select]
+    ) -> None:
         if "@" not in uc.keys():
             return
-        
+
         match uc["@"]:
             case "RangeVar":
                 alias = uc["alias"]["aliasname"] if "alias" in uc.keys() else ""
@@ -98,7 +103,7 @@ class Analyzer:
                 alias = uc["alias"]["aliasname"]
                 tables[alias] = self.__analyze_select(uc["subquery"])
         return
-    
+
     def __merge_tables(
         self, fst: dict[str, str | node.Select], snd: dict[str, str | node.Select]
     ) -> None:

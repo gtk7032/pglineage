@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import os
 from typing import Tuple
 
 import graphviz as gv
-import tqdm
-
 import node
+import tqdm
 from edge import ColEdge, TblEdge
 from logger import Logger, Row
 from table import Table
