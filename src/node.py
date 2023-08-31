@@ -21,16 +21,27 @@ class Node(metaclass=abc.ABCMeta):
     STATEMENT = ""
 
     @abc.abstractmethod
-    def format(self) -> dict[str, Any]:
-        raise NotImplementedError()
-
-    @abc.abstractmethod
     def _flatten(self) -> Node:
         raise NotImplementedError()
 
     @abc.abstractmethod
     def tgttblnm(self) -> str:
         raise NotImplementedError()
+
+    def format(self) -> dict[str, Any]:
+        return {
+            "statement": self.STATEMENT,
+            "srccols": {
+                colnm: [str(sc) for sc in srccols]
+                for colnm, srccols in self.srccols.items()
+            },
+            "refcols": {
+                colnm: [str(rc) for rc in refcols]
+                for colnm, refcols in self.refcols.items()
+            },
+            "tgttable": self.tgttable,
+            "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
+        }
 
     def trace_table(self, results: list[str], alias="") -> None:
         for als, tbl in self.tables.items():
@@ -103,20 +114,10 @@ class Select(Node):
         self.srccols = srccols
         self.refcols = refcols
         self.tables = tables
+        self.tgttable = ""
 
     def format(self) -> dict[str, Any]:
-        return {
-            "statement": Select.STATEMENT,
-            "srccols": {
-                colnm: [str(sc) for sc in srccols]
-                for colnm, srccols in self.srccols.items()
-            },
-            "refcols": {
-                colnm: [str(rc) for rc in refcols]
-                for colnm, refcols in self.refcols.items()
-            },
-            "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
-        }
+        return super().format()
 
     def _trace_column(self, tgtcol: str, _type: int, results: list[Column]) -> None:
         cols = self.srccols[tgtcol] if _type == 1 else self.refcols[tgtcol]
@@ -176,15 +177,7 @@ class Insert(Node):
         self.tables = tables
 
     def format(self) -> dict[str, Any]:
-        return {
-            "statement": Insert.STATEMENT,
-            "tgtcols": {
-                colnm: [str(rc) for rc in refcols]
-                for colnm, refcols in self.tgtcols.items()
-            },
-            "tgttable": next(iter(self.tgttable)),
-            "subquery": self.subquery.format() if self.subquery else "",
-        }
+        return super().format()
 
     def tgttblnm(self) -> str:
         return self.tgttable
@@ -234,15 +227,7 @@ class Update(Node):
         self.tables = tables
 
     def format(self) -> dict[str, Any]:
-        return {
-            "statement": Update.STATEMENT,
-            "tgtcols": {
-                colnm: [str(rc) for rc in refcols]
-                for colnm, refcols in self.srccols.items()
-            },
-            "tgttable": next(iter(self.tgttable)),
-            "tables": {tblnm: tbl.format() for tblnm, tbl in self.tables.items()},
-        }
+        return super().format()
 
     def __flatten_cols(self, _type: int) -> dict[str, list[Column]]:
         results: dict[str, list[Column]] = {}
@@ -298,7 +283,7 @@ class Delete(Node):
         self.refcols = refcols
 
     def format(self) -> dict[str, Any]:
-        return {}
+        return super().format()
 
     def _flatten(self) -> Delete:
         refs: list[str] = []

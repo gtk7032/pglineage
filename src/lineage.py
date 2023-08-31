@@ -105,15 +105,15 @@ class Lineage:
     def bundled(self) -> Lineage:
         ptrn = re.compile("-[0-9]+$")
 
-        def f1(s: str) -> str:
-            return s if s.startswith(node.Select.STATEMENT) else re.sub(ptrn, "", s)
+        def f1(nd: str) -> str:
+            return nd if nd.startswith(node.Select.STATEMENT) else re.sub(ptrn, "", nd)
 
         def f2(edge: TblEdge) -> TblEdge:
             return ColEdge(f1(edge.tail), f1(edge.head))
 
         nds = {f1(nd) for nd in self.__nodes}
         tes = {f2(te) for te in self.__tbl_edges}
-        res = {f2(_re) for _re in self.__ref_edges}
+        res = {f2(_re) for _re in self.__ref_edges} - tes
         return Lineage(self.__tables, self.__col_edges, tes, res, nds)
 
     def draw(
