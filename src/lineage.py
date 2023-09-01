@@ -116,16 +116,13 @@ class Lineage:
         res = {f2(_re) for _re in self.__ref_edges} - tes
         return Lineage(self.__tables, self.__col_edges, tes, res, nds)
 
-    def draw(
-        self, output: str = "output/result", format: str = "png", bundled=True
-    ) -> None:
-        self.__bar = tqdm.tqdm(total=2, desc="drawing", leave=False)
+    def draw(self, output: str = "output/result", format: str = "png") -> None:
+        self.__bar = tqdm.tqdm(total=3, desc="drawing", leave=False)
         self.__draw_column_level(output + ".clv", format)
         self.__bar.update(1)
-        if bundled:
-            self.bundled().__draw_table_level(output + ".tlv", format)
-        else:
-            self.__draw_table_level(output + ".tlv", format)
+        self.bundled().__draw_table_level(output + "_bundled_" + ".tlv", format)
+        self.__bar.update(1)
+        self.__draw_table_level(output + ".tlv", format)
         self.__bar.update(1)
         logger.write(output + ".log")
 
