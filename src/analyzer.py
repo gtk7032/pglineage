@@ -393,11 +393,12 @@ class Analyzer:
 
     def __analyze_select(self, statement: dict[str, Any]) -> node.Select:
         tables: dict[str, str | node.Select] = {}
-
+        ctes: set[str] = set()
         if "withClause" in statement.keys():
             tbls = {}
             for cte in statement["withClause"]["ctes"]:
                 tbls[cte["ctename"]] = self.__analyze_withclause(cte)
+                ctes.add(cte["ctename"])
             self.__merge_tables(tables, tbls)
 
         if "op" in statement.keys():
@@ -445,7 +446,7 @@ class Analyzer:
         if "whereClause" in statement.keys():
             self.__analyze_whereclause(statement["whereClause"], tables)
 
-        return node.Select(srccols, refcols, tables)
+        return node.Select(srccols, refcols, {"ctes": ctes}, tables)
 
     def __analyze_insert(self, stmt: dict[str, Any]) -> node.Insert:
         tgttable = stmt["relation"]["relname"]
@@ -468,14 +469,15 @@ class Analyzer:
             srccols[tgtcol] = _srccols
             refcols[tgtcol] = _refcols
 
+        ctes: set[str] = set()
         if "withClause" in stmt.keys():
             tbls = {}
             for cte in stmt["withClause"]["ctes"]:
                 tbls[cte["ctename"]] = self.__analyze_withclause(cte)
-
+                ctes.add(cte["ctename"])
             self.__merge_tables(tables, tbls)
 
-        return node.Insert(srccols, refcols, tgttable, tables)
+        return node.Insert(srccols, refcols, tgttable, {"ctes": ctes}, tables)
 
     def __analyze_update(self, stmt: dict[str, Any]) -> node.Update:
         rel = stmt["relation"]
@@ -501,16 +503,20 @@ class Analyzer:
 
         self.__merge_tables(tables, _tbls)
 
+        ctes: set[str] = set()
         if "withClause" in stmt.keys():
             tbls = {}
             for cte in stmt["withClause"]["ctes"]:
                 tbls[cte["ctename"]] = self.__analyze_withclause(cte)
+                ctes.add(cte["ctename"])
             self.__merge_tables(tables, tbls)
 
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
 
-        return node.Update(srccols, refcols, {tgttbl["alias"]: tgttbl["name"]}, tables)
+        return node.Update(
+            srccols, refcols, {tgttbl["alias"]: tgttbl["name"]}, {"ctes": ctes}, tables
+        )
 
     def __analyze_delete(self, stmt: dict[str, Any]) -> node.Delete:
         rel = stmt["relation"]
@@ -528,10 +534,12 @@ class Analyzer:
             for uc in stmt["usingClause"]:
                 self.__analyze_usingclause(uc, tables)
 
+        ctes: set[str] = set()
         if "withClause" in stmt.keys():
             tbls = {}
             for cte in stmt["withClause"]["ctes"]:
                 tbls[cte["ctename"]] = self.__analyze_withclause(cte)
+                ctes.add(cte["ctename"])
             self.__merge_tables(tables, tbls)
 
-        return node.Delete({tgttbl["alias"]: tgttbl["name"]}, tables)
+        return node.Delete({tgttbl["alias"]: tgttbl["name"]}, tables, {"ctes": ctes})
