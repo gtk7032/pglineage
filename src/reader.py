@@ -9,8 +9,7 @@ class FileReader:
     def __init__(self) -> None:
         self.p0 = re.compile("('.*?);(.*?')")
         self.p1 = re.compile(
-            "(?:with|select|update|insert|delete).+?;",
-            flags=re.IGNORECASE + re.DOTALL,
+            "(?:with|select|update|insert|delete).+?;", flags=re.DOTALL
         )
         self.p2 = re.compile("--.*")
         self.p3 = re.compile("/\*.*?\*/", flags=re.DOTALL)
