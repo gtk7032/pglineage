@@ -52,21 +52,6 @@ class Node(metaclass=abc.ABCMeta):
                 tbl.trace_table(results, als)
         return
 
-    def remove_cte(self) -> None:
-        self.srccols = {
-            colnm: [sc for sc in srccols if sc.table not in self.metadata["ctes"]]
-            for colnm, srccols in self.srccols.items()
-        }
-        self.refcols = {
-            colnm: [rc for rc in refcols if rc.table not in self.metadata["ctes"]]
-            for colnm, refcols in self.refcols.items()
-        }
-        self.tables = {
-            tblnm: tbl.format()
-            for tblnm, tbl in self.tables.items()
-            if tblnm not in self.metadata["ctes"]
-        }
-
     def summary(self, sqlnm: str) -> Summary:
         tgttbl_name = self.tgttblnm()
 
