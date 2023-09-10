@@ -124,14 +124,12 @@ class Select(Node):
         self,
         srccols: dict[str, list[Column]],
         refcols: dict[str, list[Column]],
-        metadate: dict[str, Any],
         tables: dict[str, str | Select] = {},
     ) -> None:
         self.srccols = srccols
         self.refcols = refcols
         self.tables = tables
         self.tgttable = ""
-        self.metadata = metadate
 
     def format(self) -> dict[str, Any]:
         return super().format()
@@ -169,8 +167,7 @@ class Select(Node):
         refs: list[str] = []
         super().trace_table(refs)
         f_tables = {ref: ref for ref in refs}
-        f_node = Select(f_srccols, f_refcols, self.metadata, f_tables)
-        f_node.remove_cte()
+        f_node = Select(f_srccols, f_refcols, f_tables)
         return f_node
 
     def tgttblnm(self) -> str:
@@ -191,14 +188,12 @@ class Insert(Node):
         srccols: dict[str, list[Column]],
         refcols: dict[str, list[Column]],
         tgttable: str,
-        metadata: dict[str, Any],
         tables: dict[str, str | Select] = {},
     ) -> None:
         self.srccols = srccols
         self.refcols = refcols
         self.tgttable = tgttable
         self.tables = tables
-        self.metadata = metadata
 
     def format(self) -> dict[str, Any]:
         return super().format()
@@ -229,8 +224,7 @@ class Insert(Node):
         refs: list[str] = []
         super().trace_table(refs)
         f_tables = {ref: ref for ref in refs}
-        f_node = Insert(f_srccols, f_refcols, self.tgttable, self.metadata, f_tables)
-        f_node.remove_cte()
+        f_node = Insert(f_srccols, f_refcols, self.tgttable, f_tables)
         return f_node
 
     def remove_cte(self) -> None:
@@ -248,14 +242,12 @@ class Update(Node):
         srccols: dict[str, list[Column]],
         refcols: dict[str, list[Column]],
         tgttable: dict[str, str | Select],
-        metadata: dict[str, Any],
         tables: dict[str, str | Select] = {},
     ) -> None:
         self.srccols = srccols
         self.refcols = refcols
         self.tgttable = tgttable
         self.tables = tables
-        self.metadata = metadata
 
     def format(self) -> dict[str, Any]:
         return super().format()
@@ -289,8 +281,7 @@ class Update(Node):
         refs: list[str] = []
         super().trace_table(refs)
         f_tables = {ref: ref for ref in refs}
-        f_node = Update(f_srccols, f_refcols, self.tgttable, self.metadata, f_tables)
-        f_node.remove_cte()
+        f_node = Update(f_srccols, f_refcols, self.tgttable, f_tables)
         return f_node
 
     def tgttblnm(self) -> str:
@@ -310,7 +301,6 @@ class Delete(Node):
         self,
         tgttable: dict[str, str | Select],
         tables: dict[str, str | Select],
-        metadata: dict[str, Any],
         srccols: dict[str, list[Column]] = {},
         refcols: dict[str, list[Column]] = {},
     ) -> None:
@@ -318,7 +308,6 @@ class Delete(Node):
         self.tables = tables
         self.srccols = srccols
         self.refcols = refcols
-        self.metadata = metadata
 
     def format(self) -> dict[str, Any]:
         return super().format()
@@ -327,8 +316,7 @@ class Delete(Node):
         refs: list[str] = []
         super().trace_table(refs)
         f_tables = {ref: ref for ref in refs}
-        f_node = Delete(self.tgttable, f_tables, self.metadata)
-        f_node.remove_cte()
+        f_node = Delete(self.tgttable, f_tables)
         return f_node
 
     def tgttblnm(self) -> str:

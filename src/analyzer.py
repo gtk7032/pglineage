@@ -25,7 +25,6 @@ class Analyzer:
             try:
                 stmt["psdstmt"] = next(iter(parse_sql(stmt["rawstmt"]))).stmt
             except Exception as e:
-                # import traceback
                 # print(traceback.format_exc())
                 stmt["psdstmt"] = ""
                 logger.set(
@@ -53,6 +52,7 @@ class Analyzer:
                     continue
             try:
                 # from pprint import pprint
+
                 # pprint(stmt["psdstmt"](skip_none=True))
                 nd = (
                     stmt["name"],
@@ -378,7 +378,7 @@ class Analyzer:
                     self.__merge_tables(tables, res[2])
                     return
 
-    def __analyze_withclause(self, wc: dict[str, Any]) -> node.Select:
+    def __extract_cte(self, wc: dict[str, Any]) -> node.Select:
         cte = self.__analyze_select(wc["ctequery"])
         if "aliascolnames" in wc.keys():
             cte.srccols = {
@@ -391,20 +391,69 @@ class Analyzer:
             }
         return cte
 
-    def __analyze_select(self, statement: dict[str, Any]) -> node.Select:
-        tables: dict[str, str | node.Select] = {}
-        ctes: set[str] = set()
-        if "withClause" in statement.keys():
-            tbls = {}
-            for cte in statement["withClause"]["ctes"]:
-                tbls[cte["ctename"]] = self.__analyze_withclause(cte)
-                ctes.add(cte["ctename"])
-            self.__merge_tables(tables, tbls)
+    def __remove_cycleref(self, nd: node.Select, ctename: str) -> None:
+        nd.tables.pop(ctename, "")
+        nd.srccols = {
+            colname: [sc for sc in srccols if sc.table != ctename]
+            for colname, srccols in nd.srccols.items()
+        }
+        nd.refcols = {
+            colname: [rc for rc in refcols if rc.table != ctename]
+            for colname, refcols in nd.refcols.items()
+        }
 
-        if "op" in statement.keys():
-            if statement["op"]["name"] == "SETOP_UNION":
-                left = self.__analyze_select(statement["larg"])
-                right = self.__analyze_select(statement["rarg"])
+    def __attache_node_to_table(self, tables: dict[str, str | node.Select]):
+        nodes: dict[str, node.Select] = {}
+
+        def collect_nodes(nd: node.Select):
+            for k, v in nd.tables.items():
+                if isinstance(v, node.Select):
+                    nodes.setdefault(k, v)
+                    collect_nodes(v)
+
+        def attach_nodes(nd: node.Select):
+            for k, v in nd.tables.items():
+                if isinstance(v, str):
+                    if v in nodes.keys():
+                        nd.tables[k] = nodes[v]
+                else:
+                    attach_nodes(v)
+
+        for k, v in tables.items():
+            if isinstance(v, node.Select):
+                nodes.setdefault(k, v)
+                collect_nodes(v)
+
+        for k, v in tables.items():
+            if isinstance(v, str):
+                if k in nodes.keys():
+                    tables[k] = nodes[k]
+            else:
+                attach_nodes(v)
+
+        return nodes
+
+    def __analyze_withclause(self, wc) -> dict[str, node.Select]:
+        ctes: dict[str, node.Select] = {}
+        for cte in wc["ctes"]:
+            ctename = cte["ctename"]
+            c = self.__extract_cte(cte)
+            if wc["recursive"]:
+                self.__remove_cycleref(c, ctename)
+            ctes[ctename] = c
+        return ctes
+
+    def __analyze_select(self, stmt: dict[str, Any]) -> node.Select:
+        tables: dict[str, str | node.Select] = {}
+
+        if "withClause" in stmt.keys():
+            ctes = self.__analyze_withclause(stmt["withClause"])
+            self.__merge_tables(tables, ctes)
+
+        if "op" in stmt.keys():
+            if stmt["op"]["name"] == "SETOP_UNION":
+                left = self.__analyze_select(stmt["larg"])
+                right = self.__analyze_select(stmt["rarg"])
                 scs = {
                     lk if lk == rk else "column-" + str(i + 1): list(set(lv + rv))
                     for i, ((lk, lv), (rk, rv)) in enumerate(
@@ -421,17 +470,15 @@ class Analyzer:
                 self.__merge_tables(tables, left.tables)
                 return node.Select(scs, rcs, tables)
 
-        if "fromClause" in statement.keys():
-            for fc in statement["fromClause"]:
+        if "fromClause" in stmt.keys():
+            for fc in stmt["fromClause"]:
                 self.__analyze_fromclause(fc, tables)
 
         srccols, refcols, _tbls = {}, {}, {}
-        if "targetList" in statement.keys():
-            srccols, refcols, _tbls = self.__analyze_restargets(statement["targetList"])
-        elif "valuesLists" in statement.keys():
-            srccols, refcols, _tbls = self.__analyze_valueslists(
-                statement["valuesLists"]
-            )
+        if "targetList" in stmt.keys():
+            srccols, refcols, _tbls = self.__analyze_restargets(stmt["targetList"])
+        elif "valuesLists" in stmt.keys():
+            srccols, refcols, _tbls = self.__analyze_valueslists(stmt["valuesLists"])
 
         if len(tables.keys()) == 1:
             t = next(iter(tables))
@@ -443,10 +490,12 @@ class Analyzer:
 
         self.__merge_tables(tables, _tbls)
 
-        if "whereClause" in statement.keys():
-            self.__analyze_whereclause(statement["whereClause"], tables)
+        if "whereClause" in stmt.keys():
+            self.__analyze_whereclause(stmt["whereClause"], tables)
 
-        return node.Select(srccols, refcols, {"ctes": ctes}, tables)
+        self.__attache_node_to_table(tables)
+
+        return node.Select(srccols, refcols, tables)
 
     def __analyze_insert(self, stmt: dict[str, Any]) -> node.Insert:
         tgttable = stmt["relation"]["relname"]
@@ -469,15 +518,13 @@ class Analyzer:
             srccols[tgtcol] = _srccols
             refcols[tgtcol] = _refcols
 
-        ctes: set[str] = set()
         if "withClause" in stmt.keys():
-            tbls = {}
-            for cte in stmt["withClause"]["ctes"]:
-                tbls[cte["ctename"]] = self.__analyze_withclause(cte)
-                ctes.add(cte["ctename"])
-            self.__merge_tables(tables, tbls)
+            ctes = self.__analyze_withclause(stmt["withClause"])
+            self.__merge_tables(tables, ctes)
 
-        return node.Insert(srccols, refcols, tgttable, {"ctes": ctes}, tables)
+        self.__attache_node_to_table(tables)
+
+        return node.Insert(srccols, refcols, tgttable, tables)
 
     def __analyze_update(self, stmt: dict[str, Any]) -> node.Update:
         rel = stmt["relation"]
@@ -505,18 +552,15 @@ class Analyzer:
 
         ctes: set[str] = set()
         if "withClause" in stmt.keys():
-            tbls = {}
-            for cte in stmt["withClause"]["ctes"]:
-                tbls[cte["ctename"]] = self.__analyze_withclause(cte)
-                ctes.add(cte["ctename"])
-            self.__merge_tables(tables, tbls)
+            ctes = self.__analyze_withclause(stmt["withClause"])
+            self.__merge_tables(tables, ctes)
 
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
 
-        return node.Update(
-            srccols, refcols, {tgttbl["alias"]: tgttbl["name"]}, {"ctes": ctes}, tables
-        )
+        self.__attache_node_to_table(tables)
+
+        return node.Update(srccols, refcols, {tgttbl["alias"]: tgttbl["name"]}, tables)
 
     def __analyze_delete(self, stmt: dict[str, Any]) -> node.Delete:
         rel = stmt["relation"]
@@ -534,12 +578,10 @@ class Analyzer:
             for uc in stmt["usingClause"]:
                 self.__analyze_usingclause(uc, tables)
 
-        ctes: set[str] = set()
         if "withClause" in stmt.keys():
-            tbls = {}
-            for cte in stmt["withClause"]["ctes"]:
-                tbls[cte["ctename"]] = self.__analyze_withclause(cte)
-                ctes.add(cte["ctename"])
-            self.__merge_tables(tables, tbls)
+            ctes = self.__analyze_withclause(stmt["withClause"])
+            self.__merge_tables(tables, ctes)
 
-        return node.Delete({tgttbl["alias"]: tgttbl["name"]}, tables, {"ctes": ctes})
+        self.__attache_node_to_table(tables)
+
+        return node.Delete({tgttbl["alias"]: tgttbl["name"]}, tables)
