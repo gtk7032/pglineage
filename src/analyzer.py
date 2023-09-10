@@ -415,7 +415,7 @@ class Analyzer:
             for k, v in nd.tables.items():
                 if isinstance(v, str):
                     if v in nodes.keys():
-                        nd.tables[k] = nodes[v]
+                        nd.tables[v] = nodes[v]
                 else:
                     attach_nodes(v)
 
@@ -427,7 +427,7 @@ class Analyzer:
         for k, v in tables.items():
             if isinstance(v, str):
                 if k in nodes.keys():
-                    tables[k] = nodes[k]
+                    tables[v] = nodes[k]
             else:
                 attach_nodes(v)
 
