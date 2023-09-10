@@ -158,9 +158,6 @@ class Select(Node):
     def tgttblnm(self) -> str:
         return self.__class__.STATEMENT + "-" + str(self.__class__.__COUNT)
 
-    def remove_cte(self) -> None:
-        return super().remove_cte()
-
     def summary(self, sqlnm: str) -> Summary:
         return super().summary(sqlnm)
 
@@ -211,9 +208,6 @@ class Insert(Node):
         f_tables = {ref: ref for ref in refs}
         f_node = Insert(f_srccols, f_refcols, self.tgttable, f_tables)
         return f_node
-
-    def remove_cte(self) -> None:
-        return super().remove_cte()
 
     def summary(self, sqlnm: str) -> Summary:
         return super().summary(sqlnm)
@@ -272,9 +266,6 @@ class Update(Node):
     def tgttblnm(self) -> str:
         return next(iter(self.tgttable.values()))
 
-    def remove_cte(self) -> None:
-        return super().remove_cte()
-
     def summary(self, sqlnm: str) -> Summary:
         return super().summary(sqlnm)
 
@@ -306,9 +297,6 @@ class Delete(Node):
 
     def tgttblnm(self) -> str:
         return next(iter(self.tgttable.values()))
-
-    def remove_cte(self) -> None:
-        return super().remove_cte()
 
     def summary(self, sqlnm: str) -> Summary:
         return super().summary(sqlnm)
