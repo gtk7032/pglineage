@@ -412,10 +412,10 @@ class Analyzer:
                     collect_nodes(v)
 
         def attach_nodes(nd: node.Select):
-            for v in nd.tables.values():
+            for k, v in nd.tables.items():
                 if isinstance(v, str):
                     if v in nodes.keys():
-                        nd.tables[v] = nodes[v]
+                        nd.tables[k] = nodes[v]
                 else:
                     attach_nodes(v)
 
@@ -424,10 +424,10 @@ class Analyzer:
                 nodes.setdefault(k, v)
                 collect_nodes(v)
 
-        for v in tables.values():
+        for k, v in tables.items():
             if isinstance(v, str):
                 if v in nodes.keys():
-                    tables[v] = nodes[v]
+                    tables[k] = nodes[v]
             else:
                 attach_nodes(v)
 
