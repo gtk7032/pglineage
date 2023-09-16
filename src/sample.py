@@ -2,13 +2,13 @@ from pathlib import Path
 
 from analyzer import Analyzer
 from reader import FileReader
+import tqdm 
 
 files = [str(p) for p in Path("resource").glob("**/*") if p.is_file()]
-
 reader = FileReader()
 analyzer = Analyzer()
 
-for file in files:
+for file in tqdm.tqdm(files, desc="loading", leave=False):
     try:
         sqls = reader.read(file)
     except Exception:

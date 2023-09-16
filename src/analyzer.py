@@ -16,7 +16,7 @@ class Analyzer:
         self.__stmts: list[dict[str, str]] = []
 
     def load(self, sqls: list[Tuple[str, str]]) -> None:
-        for name, sql in tqdm.tqdm(sqls, desc="loading", leave=False):
+        for name, sql in sqls:
             self.__stmts.append({"name": name, "rawstmt": sql})
             logger.set(name, Row(name, "success", "", sql))
 
@@ -225,13 +225,11 @@ class Analyzer:
                     yield key, tgt
                     return
                 for k, v in tgt.items():
-                    for t in list(self.__traverse(k, v, types)):
-                        yield t
+                    yield from self.__traverse(k, v, types)
             case builtins.tuple:
                 for v in tgt:
                     if isinstance(v, (tuple, dict)):
-                        for t in list(self.__traverse("", v, types)):
-                            yield t
+                        yield from self.__traverse("", v, types)
 
     def __extract_caseexpr(
         self, tgt
