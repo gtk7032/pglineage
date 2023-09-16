@@ -1,4 +1,4 @@
-venv
+.venv
 .git
 src/__pycache__
 output/*

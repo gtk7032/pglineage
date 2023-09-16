@@ -1,4 +1,3 @@
 __pycache__
 .mypy_cache
-venv
-a.txt
+.venv
