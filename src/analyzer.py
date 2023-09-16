@@ -548,7 +548,6 @@ class Analyzer:
 
         self.__merge_tables(tables, _tbls)
 
-        ctes: set[str] = set()
         if "withClause" in stmt.keys():
             ctes = self.__analyze_withclause(stmt["withClause"])
             self.__merge_tables(tables, ctes)
