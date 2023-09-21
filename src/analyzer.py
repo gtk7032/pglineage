@@ -400,7 +400,7 @@ class Analyzer:
             for colname, refcols in nd.refcols.items()
         }
 
-    def __attache_node_to_table(self, tables: dict[str, str | node.Select]):
+    def __attach_node_to_table(self, tables: dict[str, str | node.Select]):
         nodes: dict[str, node.Select] = {}
 
         def collect_nodes(nd: node.Select):
@@ -491,7 +491,7 @@ class Analyzer:
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
 
-        self.__attache_node_to_table(tables)
+        self.__attach_node_to_table(tables)
 
         return node.Select(srccols, refcols, tables)
 
@@ -520,7 +520,7 @@ class Analyzer:
             ctes = self.__analyze_withclause(stmt["withClause"])
             self.__merge_tables(tables, ctes)
 
-        self.__attache_node_to_table(tables)
+        self.__attach_node_to_table(tables)
 
         return node.Insert(srccols, refcols, tgttable, tables)
 
@@ -555,7 +555,7 @@ class Analyzer:
         if "whereClause" in stmt.keys():
             self.__analyze_whereclause(stmt["whereClause"], tables)
 
-        self.__attache_node_to_table(tables)
+        self.__attach_node_to_table(tables)
 
         return node.Update(srccols, refcols, {tgttbl["alias"]: tgttbl["name"]}, tables)
 
@@ -579,6 +579,6 @@ class Analyzer:
             ctes = self.__analyze_withclause(stmt["withClause"])
             self.__merge_tables(tables, ctes)
 
-        self.__attache_node_to_table(tables)
+        self.__attach_node_to_table(tables)
 
         return node.Delete({tgttbl["alias"]: tgttbl["name"]}, tables)
