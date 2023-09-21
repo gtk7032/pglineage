@@ -25,7 +25,7 @@ class Node(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def tgttblnm(self) -> str:
+    def __tgttblnm(self) -> str:
         raise NotImplementedError()
 
     def format(self) -> dict[str, Any]:
@@ -53,7 +53,7 @@ class Node(metaclass=abc.ABCMeta):
         return
 
     def summary(self, sqlnm: str) -> Summary:
-        tgttbl_name = self.tgttblnm()
+        tgttbl_name = self.__tgttblnm()
 
         tgt_tbl: dict[str, Table] = {tgttbl_name: Table(tgttbl_name)}
         src_tbls: dict[str, Table] = {}
@@ -155,7 +155,7 @@ class Select(Node):
         f_node = Select(f_srccols, f_refcols, f_tables)
         return f_node
 
-    def tgttblnm(self) -> str:
+    def __tgttblnm(self) -> str:
         return self.__class__.STATEMENT + "-" + str(self.__class__.__COUNT)
 
     def summary(self, sqlnm: str) -> Summary:
@@ -180,7 +180,7 @@ class Insert(Node):
     def format(self) -> dict[str, Any]:
         return super().format()
 
-    def tgttblnm(self) -> str:
+    def __tgttblnm(self) -> str:
         return self.tgttable
 
     def __flatten_cols(self, _type: int) -> dict[str, list[Column]]:
@@ -263,7 +263,7 @@ class Update(Node):
         f_node = Update(f_srccols, f_refcols, self.tgttable, f_tables)
         return f_node
 
-    def tgttblnm(self) -> str:
+    def __tgttblnm(self) -> str:
         return next(iter(self.tgttable.values()))
 
     def summary(self, sqlnm: str) -> Summary:
@@ -295,7 +295,7 @@ class Delete(Node):
         f_node = Delete(self.tgttable, f_tables)
         return f_node
 
-    def tgttblnm(self) -> str:
+    def __tgttblnm(self) -> str:
         return next(iter(self.tgttable.values()))
 
     def summary(self, sqlnm: str) -> Summary:

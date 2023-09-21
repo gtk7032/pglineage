@@ -7,12 +7,12 @@ from chardet import detect
 
 class FileReader:
     def __init__(self) -> None:
-        self.p0 = re.compile("('.*?);(.*?')")
-        self.p1 = re.compile(
+        self.__p0 = re.compile("('.*?);(.*?')")
+        self.__p1 = re.compile(
             "(?:with|select|update|insert|delete).+?;", flags=re.DOTALL
         )
-        self.p2 = re.compile("--.*")
-        self.p3 = re.compile("/\*.*?\*/", flags=re.DOTALL)
+        self.__p2 = re.compile("--.*")
+        self.__p3 = re.compile("/\*.*?\*/", flags=re.DOTALL)
 
     def detect_enc(self, path: str) -> str | None:
         with open(path, "rb") as f:
@@ -26,10 +26,10 @@ class FileReader:
             raise Exception()
         with open(path, "r", encoding=enc) as f:
             s = f.read().lower()
-        s = self.p0.sub(r"\1\2", s)
-        s = self.p2.sub("", s)
-        s = self.p3.sub("", s)
-        sqls = self.p1.findall(s)
+        s = self.__p0.sub(r"\1\2", s)
+        s = self.__p2.sub("", s)
+        s = self.__p3.sub("", s)
+        sqls = self.__p1.findall(s)
         name, _ = os.path.splitext(os.path.basename(path))
         name = name.lower()
         return [(name + "-" + str(i + 1), sql) for i, sql in enumerate(sqls)]
