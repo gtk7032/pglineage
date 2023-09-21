@@ -14,14 +14,14 @@ class FileReader:
         self.__p2 = re.compile("--.*")
         self.__p3 = re.compile("/\*.*?\*/", flags=re.DOTALL)
 
-    def detect_enc(self, path: str) -> str | None:
+    def __detect_enc(self, path: str) -> str | None:
         with open(path, "rb") as f:
             b = f.read()
             e = detect(b)
             return e["encoding"]
 
     def read(self, path: str) -> list[Tuple[str, str]]:
-        enc = self.detect_enc(path)
+        enc = self.__detect_enc(path)
         if not enc:
             raise Exception()
         with open(path, "r", encoding=enc) as f:
