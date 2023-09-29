@@ -25,6 +25,8 @@ class Analyzer:
             try:
                 stmt["psdstmt"] = next(iter(parse_sql(stmt["rawstmt"]))).stmt
             except Exception as e:
+                # import traceback
+
                 # print(traceback.format_exc())
                 stmt["psdstmt"] = ""
                 logger.set(
@@ -35,6 +37,10 @@ class Analyzer:
     def analyze(self) -> Lineage:
         self.__parse()
         return Lineage.create(self.__analyze())
+
+    def _analyze_test(self) -> node.Node:
+        self.__parse()
+        return self.__analyze()[0][2]
 
     def __analyze(self) -> list[Tuple[str, str, node.Node]]:
         nodes: list[Tuple[str, str, node.Node]] = []
