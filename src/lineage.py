@@ -102,7 +102,7 @@ class Lineage:
     def create(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
         return Lineage.__merge(nodes)
 
-    def bundled(self) -> Lineage:
+    def __bundled(self) -> Lineage:
         ptrn = re.compile("-[0-9]+$")
 
         def f1(nd: str) -> str:
@@ -120,7 +120,7 @@ class Lineage:
         self.__bar = tqdm.tqdm(total=3, desc="drawing", leave=False)
         self.__draw_column_level(output + ".clv", format)
         self.__bar.update(1)
-        self.bundled().__draw_table_level(output + "_bundled_" + ".tlv", format)
+        self.__bundled().__draw_table_level(output + "_bundled_" + ".tlv", format)
         self.__bar.update(1)
         self.__draw_table_level(output + ".tlv", format)
         self.__bar.update(1)
