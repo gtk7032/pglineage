@@ -1,12 +1,13 @@
 import builtins
 from typing import Any, Tuple
 
-import node
 import tqdm
-from column import Column
-from lineage import Lineage
-from logger import Logger, Row
 from pglast import ast, parse_sql
+
+from . import node
+from .column import Column
+from .lineage import Lineage
+from .logger import Logger, Row
 
 logger = Logger()
 

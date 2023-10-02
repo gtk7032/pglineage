@@ -3,9 +3,9 @@ from __future__ import annotations
 import abc
 from typing import Any, NamedTuple
 
-from column import Column
-from edge import ColEdge, TblEdge
-from table import Table
+from .column import Column
+from .edge import ColEdge, TblEdge
+from .table import Table
 
 
 class Summary(NamedTuple):

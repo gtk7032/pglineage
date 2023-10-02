@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import tqdm
-from analyzer import Analyzer
-from reader import FileReader
+from .analyzer import Analyzer
+from .reader import FileReader
 
 files = [str(p) for p in Path("resource").glob("**/*") if p.is_file()]
 reader = FileReader()
