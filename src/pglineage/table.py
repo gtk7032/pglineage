@@ -1,4 +1,4 @@
-from .column import Column
+from pglineage.column import Column
 
 
 class Table:

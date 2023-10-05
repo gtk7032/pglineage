@@ -6,10 +6,10 @@ from typing import Tuple
 import graphviz as gv
 import tqdm
 
-from . import node
-from .edge import ColEdge, TblEdge
-from .logger import Logger, Row
-from .table import Table
+from pglineage import node
+from pglineage.edge import ColEdge, TblEdge
+from pglineage.logger import Logger, Row
+from pglineage.table import Table
 
 logger = Logger()
 

@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-from .column import Column
+from pglineage.column import Column
 
 
 class ColEdge(NamedTuple):

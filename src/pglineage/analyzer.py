@@ -4,10 +4,10 @@ from typing import Any, Tuple
 import tqdm
 from pglast import ast, parse_sql
 
-from . import node
-from .column import Column
-from .lineage import Lineage
-from .logger import Logger, Row
+from pglineage import node
+from pglineage.column import Column
+from pglineage.lineage import Lineage
+from pglineage.logger import Logger, Row
 
 logger = Logger()
 

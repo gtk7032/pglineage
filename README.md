@@ -39,7 +39,7 @@ See the [sample program](src/sample.py), which targets the SQL contained in all 
 Running the sample program with the following command generates the diagrams in the output folder.
 
 ~~~bash
-docker exec -it pglineage python src/sample.py
+docker exec -it pglineage python src/pglineage/sample.py
 ~~~
 
 ## Notice

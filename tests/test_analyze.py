@@ -1,7 +1,7 @@
 from typing import Any
 
-from src.analyzer import Analyzer
-from tests import sql
+import sql
+from pglineage.analyzer import Analyzer
 
 
 def func(sql: str, expected: dict[str, Any]) -> None:
