@@ -34,7 +34,7 @@ To use pglineage, follow these steps:
 
 ## Example Usage
 
-See the [sample program](src/sample.py), which targets the SQL contained in all files within the resource folder.
+See the [sample program](src/pglineage/sample.py), which targets the SQL contained in all files within the resource folder.
 
 Running the sample program with the following command generates the diagrams in the output folder.
 
