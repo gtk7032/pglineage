@@ -7,5 +7,6 @@ services:
     build: .
     tty: true
     volumes:
+      - ./src:/usr/local/pglineage/src
       - ./resource:/usr/local/pglineage/resource
       - ./output:/usr/local/pglineage/output
