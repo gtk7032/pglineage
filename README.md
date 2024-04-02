@@ -32,6 +32,12 @@ To use pglineage, follow these steps:
     docker compose up -d
     ~~~
 
+1. Install Modules:
+
+    ~~~bash
+    docker exec -it pglineage pip install -e .
+    ~~~
+
 ## Example Usage
 
 See the [sample program](src/pglineage/sample.py), which targets the SQL contained in all files within the resource folder.

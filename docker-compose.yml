@@ -10,3 +10,4 @@ services:
       - ./src:/usr/local/pglineage/src
       - ./resource:/usr/local/pglineage/resource
       - ./output:/usr/local/pglineage/output
+      - ./tests:/usr/local/pglineage/tests
