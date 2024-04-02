@@ -1,4 +1,5 @@
 __pycache__
 .mypy_cache
 .venv
-src/pglineage.egg
+pglineage.egg-info
+src/pglineage.egg-info

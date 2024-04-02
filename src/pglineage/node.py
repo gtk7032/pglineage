@@ -67,9 +67,6 @@ class Node(metaclass=abc.ABCMeta):
         for colname, srccols in f.srccols.items():
             tgt_tbl[tgttbl_name].add(colname)
             for srccol in srccols:
-                if srccol.table not in f.tables:  # with recursive
-                    continue
-
                 src_tbls.setdefault(srccol.table, Table(srccol.table))
                 src_tbls[srccol.table].add(srccol)
 
