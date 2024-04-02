@@ -15,6 +15,9 @@ RUN groupadd -g "$GID" "$GROUPNAME" \
 
 COPY ./setup.cfg "$APP_DIR"
 COPY ./setup.py "$APP_DIR"
+COPY ./src "$APP_DIR"
+
+RUN cd "$APP_DIR" && pip install -e .
 
 USER "$USERNAME"
 WORKDIR "$APP_DIR"
