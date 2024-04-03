@@ -1,29 +1,38 @@
 import csv
+import re
 from typing import NamedTuple
+
+from pglineage.stmt import RawStmt
 
 
 class Row(NamedTuple):
-    name: str
     result: str
     msg: str
-    query: str
+    name: str
+    stmt: str
 
 
 class Logger:
-    rows: dict[str, Row] = {}
+    __rows: dict[str, Row] = {}
+    __pat = re.compile("[ ]{2,}")
 
-    def set(self, name: str, row: Row) -> None:
-        Logger.rows[name] = row
+    def set(self, result: str, msg: str, rawstmt: RawStmt) -> None:
+        Logger.__rows[rawstmt.name] = Row(result, msg, rawstmt.name, rawstmt.stmt)
 
     def __sort(self) -> None:
-        Logger.rows = dict(sorted(Logger.rows.items()))
+        Logger.__rows = dict(sorted(Logger.__rows.items()))
+
+    def __fmt(self, s: str) -> str:
+        res = "".join(s.splitlines())
+        res = re.sub(Logger.__pat, " ", res)
+        return res[:80] + " ..." if len(res) >= 80 else res[:80]
 
     def write(self, path: str) -> None:
         self.__sort()
         with open(path, "w", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["name", "status", "error_message", "query"])
-            for r in Logger.rows.values():
-                s = "".join(r.query[:80].splitlines())
-                s += " ..." if len(r.query) >= 80 else ""
-                writer.writerow([r.name, r.result, r.msg, s])
+            for row in Logger.__rows.values():
+                writer.writerow(
+                    [row.name, row.result, self.__fmt(row.msg), self.__fmt(row.stmt)]
+                )

@@ -3,36 +3,35 @@ from typing import Any, Tuple
 
 import tqdm
 from pglast import ast, parse_sql
-
 from pglineage import node
 from pglineage.column import Column
 from pglineage.lineage import Lineage
-from pglineage.logger import Logger, Row
+from pglineage.logger import Logger
+from pglineage.stmt import RawStmt
 
 logger = Logger()
 
 
 class Analyzer:
     def __init__(self) -> None:
-        self.__stmts: list[dict[str, str]] = []
+        self.__rawstmts: list[RawStmt] = []
+        self.__psdstmts: list[
+            ast.SelectStmt | ast.InsertStmt | ast.UpdateStmt | ast.DeleteStmt
+        ] = []
 
-    def load(self, sqls: list[Tuple[str, str]]) -> None:
-        for name, sql in sqls:
-            self.__stmts.append({"name": name, "rawstmt": sql})
-            logger.set(name, Row(name, "success", "", sql))
+    def load(self, stmts: list[RawStmt]) -> None:
+        for stmt in stmts:
+            self.__rawstmts.append(stmt)
+            logger.set("success", "", stmt)
 
     def __parse(self) -> None:
-        for stmt in tqdm.tqdm(self.__stmts, desc="parsing", leave=False):
+        for rawstmt in tqdm.tqdm(self.__rawstmts, desc="parsing", leave=False):
             try:
-                stmt["psdstmt"] = next(iter(parse_sql(stmt["rawstmt"]))).stmt
+                psdstmt = next(iter(parse_sql(rawstmt.stmt))).stmt
+                self.__psdstmts.append(psdstmt)
             except Exception as e:
-                # import traceback
-
-                # print(traceback.format_exc())
-                stmt["psdstmt"] = ""
-                logger.set(
-                    stmt["name"], Row(stmt["name"], "failed", str(e), stmt["rawstmt"])
-                )
+                self.__psdstmts.append(None)
+                logger.set("failed", str(e), rawstmt)
                 continue
 
     def analyze(self) -> Lineage:
@@ -44,9 +43,11 @@ class Analyzer:
         return self.__analyze()[0][2]
 
     def __analyze(self) -> list[Tuple[str, str, node.Node]]:
-        nodes: list[Tuple[str, str, node.Node]] = []
-        for stmt in tqdm.tqdm(self.__stmts, desc="analyzing", leave=False):
-            match stmt["psdstmt"]:
+        nodes: list[Tuple[str, node.Node]] = []
+        for psdstmt, rawstmt in zip(
+            tqdm.tqdm(self.__psdstmts, desc="analyzing", leave=False), self.__rawstmts
+        ):
+            match psdstmt:
                 case ast.SelectStmt():
                     analyze_stmt = self.__analyze_select
                 case ast.InsertStmt():
@@ -58,22 +59,14 @@ class Analyzer:
                 case _:
                     continue
             try:
-                # from pprint import pprint
-
-                # pprint(stmt["psdstmt"](skip_none=True))
                 nd = (
-                    stmt["name"],
-                    stmt["rawstmt"],
-                    analyze_stmt(stmt["psdstmt"](skip_none=True)),
+                    rawstmt,
+                    analyze_stmt(psdstmt(skip_none=True)),
                 )
                 nodes.append(nd)
 
             except Exception as e:
-                logger.set(
-                    stmt["name"], Row(stmt["name"], "failed", str(e), stmt["rawstmt"])
-                )
-                # import traceback
-                # print(traceback.format_exc())
+                logger.set("failed", str(e), rawstmt)
                 continue
 
         return nodes

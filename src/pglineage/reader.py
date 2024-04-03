@@ -1,8 +1,8 @@
 import os
 import re
-from typing import Tuple
 
 from chardet import detect
+from pglineage.stmt import RawStmt
 
 
 class FileReader:
@@ -20,7 +20,7 @@ class FileReader:
             e = detect(b)
             return e["encoding"]
 
-    def read(self, path: str) -> list[Tuple[str, str]]:
+    def read(self, path: str) -> list[RawStmt]:
         enc = self.__detect_enc(path)
         if not enc:
             raise Exception()
@@ -32,4 +32,4 @@ class FileReader:
         sqls = self.__p1.findall(s)
         name, _ = os.path.splitext(os.path.basename(path))
         name = name.lower()
-        return [(name + "-" + str(i + 1), sql) for i, sql in enumerate(sqls)]
+        return [RawStmt(name + "-" + str(i + 1), sql) for i, sql in enumerate(sqls)]

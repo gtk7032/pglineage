@@ -5,10 +5,10 @@ from typing import Tuple
 
 import graphviz as gv
 import tqdm
-
 from pglineage import node
 from pglineage.edge import ColEdge, TblEdge
-from pglineage.logger import Logger, Row
+from pglineage.logger import Logger
+from pglineage.stmt import RawStmt
 from pglineage.table import Table
 
 logger = Logger()
@@ -32,7 +32,7 @@ class Lineage:
         self.__bar: tqdm.tqdm = None
 
     @staticmethod
-    def __merge(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
+    def __merge(nodes: list[Tuple[RawStmt, node.Node]]) -> Lineage:
         _nodes: list[str] = []
         tgt_tables_insert: dict[str, Table] = {}
         tgt_tables_other: dict[str, Table] = {}
@@ -42,12 +42,12 @@ class Lineage:
         tbl_edges: set[TblEdge] = set()
         ref_edges: set[TblEdge] = set()
 
-        for nd in tqdm.tqdm(nodes, desc="creating", leave=False):
-            nm, stmt, nd = nd[0], nd[1], nd[2]
+        for _nd in tqdm.tqdm(nodes, desc="creating", leave=False):
+            nm, nd = _nd[0].name, _nd[1]
             try:
                 summary: node.Summary = nd.summary(nm)
             except Exception as e:
-                logger.set(nm, Row(nm, "failed", str(e), stmt))
+                logger.set("failed", str(e), _nd[0])
                 continue
 
             if (
@@ -79,8 +79,6 @@ class Lineage:
         tables = tgt_tables_other | tgt_tables_insert
 
         for k, v in src_tables.items():
-            # if k in tgt_tables_insert.keys():
-            #     continue
             if k in tables.keys():
                 tables[k].update(v.columns)
             else:
@@ -100,7 +98,7 @@ class Lineage:
         )
 
     @staticmethod
-    def create(nodes: list[Tuple[str, str, node.Node]]) -> Lineage:
+    def create(nodes: list[Tuple[RawStmt, node.Node]]) -> Lineage:
         return Lineage.__merge(nodes)
 
     def __bundled(self) -> Lineage:
